@@ -1,0 +1,76 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: terra_mysql_dev
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-terra_root_secret}
+      MYSQL_DATABASE: ${DB_NAME:-terra_db}
+      MYSQL_USER: ${DB_USER:-terra_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-terra_secret}
+    ports:
+      - "${DB_PORT_EXTERNAL:-3308}:3306"
+    volumes:
+      - terra_mysql_dev_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    networks:
+      - terra_dev_net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: terra-clone-server:dev
+    container_name: terra_server_dev
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      PORT: ${SERVER_PORT:-8080}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-terra_db}
+      DB_USER: ${DB_USER:-terra_user}
+      DB_PASSWORD: ${DB_PASSWORD:-terra_secret}
+    ports:
+      - "${SERVER_PORT_EXTERNAL:-8090}:8080"
+    volumes:
+      - ./server:/app
+      - terra_go_mod_cache:/go/pkg/mod
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - terra_dev_net
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    image: terra-clone-nginx:dev
+    container_name: terra_nginx_dev
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8088}:80"
+      - "${NGINX_SSL_PORT:-8443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - server
+    networks:
+      - terra_dev_net
+
+volumes:
+  terra_mysql_dev_data:
+  terra_go_mod_cache:
+
+networks:
+  terra_dev_net:
+    name: terra_dev_network
+    driver: bridge

@@ -1,0 +1,11 @@
+.git
+.gitignore
+tmp/
+*.log
+bin/
+.env
+.env.local
+.env.staging
+.env.product
+.air.toml
+

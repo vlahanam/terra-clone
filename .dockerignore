@@ -1,0 +1,15 @@
+.git
+.gitignore
+.vscode
+.idea
+*.md
+Makefile
+tmp/
+*.log
+node_modules
+.next
+dist
+build
+.env*
+!.env.example
+

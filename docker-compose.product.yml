@@ -1,0 +1,67 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: terra_mysql_product
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required in production}
+      MYSQL_DATABASE: ${DB_NAME:-terra_db}
+      MYSQL_USER: ${DB_USER:-terra_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required in production}
+    # Database port is kept private inside Docker network for security
+    volumes:
+      - terra_mysql_product_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    networks:
+      - terra_product_network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.product
+    image: terra-clone-server:prod
+    container_name: terra_server_product
+    restart: always
+    environment:
+      APP_ENV: production
+      PORT: ${SERVER_PORT:-8080}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-terra_db}
+      DB_USER: ${DB_USER:-terra_user}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - terra_product_network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.product
+    image: terra-clone-nginx:prod
+    container_name: terra_nginx_product
+    restart: always
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_SSL_PORT:-443}:443"
+    depends_on:
+      - server
+    networks:
+      - terra_product_network
+
+volumes:
+  terra_mysql_product_data:
+
+networks:
+  terra_product_network:
+    name: terra_product_network
+    driver: bridge
+

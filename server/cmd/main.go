@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/vlahanam/terra-clone/internal"
 
 func main() {
-	fmt.Print()
+	internal.Run()
 }
