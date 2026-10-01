@@ -1,5 +1,5 @@
 # Stage 1: Build production binary
-FROM golang:1.26.7-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /app/bin/server ./cmd/main.go
 
 # Stage 2: Minimal hardened runtime image
-FROM alpine:3.21
+FROM alpine:3.24
 
 WORKDIR /app
 
