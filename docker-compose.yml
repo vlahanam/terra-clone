@@ -1,23 +1,26 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: terra_mysql_dev
+  postgres:
+    image: postgres:16-alpine
+    container_name: terra_postgres_dev
     restart: unless-stopped
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-terra_root_secret}
-      MYSQL_DATABASE: ${DB_NAME:-terra_db}
-      MYSQL_USER: ${DB_USER:-terra_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-terra_secret}
+      POSTGRES_DB: ${DB_NAME:-terra_db}
+      POSTGRES_USER: ${DB_USER:-terra_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-terra_secret}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "${DB_PORT_EXTERNAL:-3308}:3306"
+      - "${DB_PORT_EXTERNAL:-5432}:5432"
     volumes:
-      - terra_mysql_dev_data:/var/lib/mysql
+      - terra_postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER:-terra_user} -d $${POSTGRES_DB:-terra_db}",
+        ]
       interval: 5s
       timeout: 5s
-      retries: 15
+      retries: 10
       start_period: 10s
     networks:
       - terra_dev_net
@@ -32,8 +35,8 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-local}
       PORT: ${SERVER_PORT:-8080}
-      DB_HOST: ${DB_HOST:-mysql}
-      DB_PORT: ${DB_PORT:-3306}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME:-terra_db}
       DB_USER: ${DB_USER:-terra_user}
       DB_PASSWORD: ${DB_PASSWORD:-terra_secret}
@@ -43,7 +46,7 @@ services:
       - ./server:/app
       - terra_go_mod_cache:/go/pkg/mod
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     networks:
       - terra_dev_net
@@ -67,7 +70,7 @@ services:
       - terra_dev_net
 
 volumes:
-  terra_mysql_dev_data:
+  terra_postgres_dev_data:
   terra_go_mod_cache:
 
 networks:

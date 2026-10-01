@@ -1,4 +1,4 @@
-.PHONY: help up down restart build logs ps dev-up dev-down dev-build dev-logs dev-restart staging-up staging-down staging-build staging-logs prod-up prod-down prod-build prod-logs server-sh nginx-sh nginx-reload mysql-cli clean
+.PHONY: help up down restart build logs ps dev-up dev-down dev-build dev-logs dev-restart staging-up staging-down staging-build staging-logs prod-up prod-down prod-build prod-logs server-sh nginx-sh nginx-reload psql-cli db-cli clean
 
 # Default environment: Dev / Local (Môi trường dev với local là một)
 COMPOSE_DEV = docker compose -f docker-compose.yml
@@ -79,8 +79,10 @@ nginx-sh: ## Mở terminal sh trong container Nginx
 nginx-reload: ## Reload Nginx config không cần restart container
 	$(COMPOSE_DEV) exec nginx nginx -s reload
 
-mysql-cli: ## Mở MySQL CLI trong container mysql
-	$(COMPOSE_DEV) exec mysql mysql -uterra_user -pterra_secret terra_db
+psql-cli: ## Mở PostgreSQL CLI (psql) trong container postgres
+	$(COMPOSE_DEV) exec postgres psql -U terra_user -d terra_db
+
+db-cli: psql-cli ## Mở Database CLI (alias cho psql-cli)
 
 clean: ## Dừng và xóa toàn bộ container, network, volumes của dự án
 	$(COMPOSE_DEV) down -v --remove-orphans

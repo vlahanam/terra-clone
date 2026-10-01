@@ -1,9 +1,10 @@
 # Terra Clone - Infrastructure & Deployment Guide
 
 Dự án xây dựng với kiến trúc Microservices / Monorepo bao gồm:
+
 - **Nginx**: Reverse Proxy đóng vai trò Gateway điều hướng traffic tới Backend API và Frontend.
 - **Server (Golang)**: Backend API service với tính năng live-reload bằng Air trong môi trường Dev / Local.
-- **MySQL 8.0**: Database chính của hệ thống.
+- **PostgreSQL 16**: Database chính của hệ thống.
 - **Frontend**: Ứng dụng Web (Next.js / React) được điều hướng qua Nginx.
 
 ---
@@ -11,6 +12,7 @@ Dự án xây dựng với kiến trúc Microservices / Monorepo bao gồm:
 ## 📌 Lưu ý quan trọng về Môi trường (Environments)
 
 > **Môi trường `dev` và `local` là MỘT.**
+>
 > - `docker-compose.yml`: Sử dụng cho môi trường **Dev / Local** (mount mã nguồn vào container để code và reload ngay lập tức).
 > - `docker-compose.staging.yml`: Sử dụng cho môi trường **Staging** (build image khép kín, tối ưu kiểm thử).
 > - `docker-compose.product.yml`: Sử dụng cho môi trường **Production** (build image tối ưu, bảo mật non-root, không public port database ra ngoài host).
@@ -58,12 +60,12 @@ terra-clone/
 
 Mặc định các cổng được cấu hình trong `.env` để tránh xung đột với các ứng dụng khác:
 
-| Dịch vụ | Port Container | Port Host (Mặc định) | Ghi chú |
-| :--- | :--- | :--- | :--- |
-| **Nginx (HTTP)** | `80` | `8088` | Truy cập tại `http://localhost:8088` (có thể đổi sang `80` trong `.env`) |
-| **Nginx (SSL)** | `443` | `8443` | Truy cập tại `https://localhost:8443` |
-| **Server (Go)** | `8080` | `8090` | Port phụ để debug trực tiếp Go server (`http://localhost:8090`) |
-| **MySQL** | `3306` | `3308` | Dùng kết nối DBeaver / TablePlus qua `localhost:3308` |
+| Dịch vụ          | Port Container | Port Host (Mặc định) | Ghi chú                                                                  |
+| :--------------- | :------------- | :------------------- | :----------------------------------------------------------------------- |
+| **Nginx (HTTP)** | `80`           | `8088`               | Truy cập tại `http://localhost:8088` (có thể đổi sang `80` trong `.env`) |
+| **Nginx (SSL)**  | `443`          | `8443`               | Truy cập tại `https://localhost:8443`                                    |
+| **Server (Go)**  | `8080`         | `8090`               | Port phụ để debug trực tiếp Go server (`http://localhost:8090`)          |
+| **PostgreSQL**   | `5432`         | `5432`               | Dùng kết nối DBeaver / TablePlus / psql qua `localhost:5432`             |
 
 ---
 
@@ -86,8 +88,9 @@ Nginx được cấu hình với Docker Internal DNS Resolver (`127.0.0.11`) gi�
 Để thuận tiện thao tác mà không cần nhớ các câu lệnh dài, dự án đã tích hợp sẵn `Makefile`:
 
 ### 1. Môi trường Dev / Local (Mặc định)
+
 ```bash
-# Khởi chạy toàn bộ hệ thống dev (Nginx, Server, MySQL)
+# Khởi chạy toàn bộ hệ thống dev (Nginx, Server, PostgreSQL)
 make up
 # hoặc
 make dev-up
@@ -106,6 +109,7 @@ make build
 ```
 
 ### 2. Môi trường Staging & Production
+
 ```bash
 # Khởi chạy Staging
 make staging-up
@@ -119,6 +123,7 @@ make prod-down
 ```
 
 ### 3. Tiện ích (Debug / CLI)
+
 ```bash
 # Mở terminal sh trong container Go Server
 make server-sh
@@ -129,10 +134,11 @@ make nginx-sh
 # Reload Nginx config ngay lập tức (không cần dừng container)
 make nginx-reload
 
-# Mở MySQL CLI tương tác
-make mysql-cli
+# Mở PostgreSQL CLI (psql) tương tác
+make psql-cli
+# hoặc
+make db-cli
 
 # Dọn dẹp toàn bộ container, network và volumes của project
 make clean
 ```
-
