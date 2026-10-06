@@ -3,6 +3,8 @@ FROM golang:1.26-alpine
 
 WORKDIR /app
 
+ENV GOPROXY=https://proxy.golang.org,direct
+
 # Install tools for development and Air live-reloading
 RUN apk add --no-cache git bash curl
 

@@ -40,6 +40,7 @@ services:
       DB_NAME: ${DB_NAME:-terra_db}
       DB_USER: ${DB_USER:-terra_user}
       DB_PASSWORD: ${DB_PASSWORD:-terra_secret}
+      DB_SSLMODE: ${DB_SSLMODE}
     ports:
       - "${SERVER_PORT_EXTERNAL:-8090}:8080"
     volumes:
