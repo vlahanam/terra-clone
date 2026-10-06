@@ -4,7 +4,7 @@ Dự án xây dựng với kiến trúc Microservices / Monorepo bao gồm:
 
 - **Nginx**: Reverse Proxy đóng vai trò Gateway điều hướng traffic tới Backend API và Frontend.
 - **Server (Golang)**: Backend API service với tính năng live-reload bằng Air trong môi trường Dev / Local.
-- **PostgreSQL 17**: Database chính của hệ thống.
+- **PostgreSQL 18**: Database chính của hệ thống.
 - **Frontend**: Ứng dụng Web (Next.js / React) được điều hướng qua Nginx.
 
 ---
