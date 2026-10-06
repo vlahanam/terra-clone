@@ -19,9 +19,8 @@ func Run() {
 
 	r := SetupRouter(cf.AppConfig)
 
-	addr := fmt.Sprintf(":%s", cf.AppConfig.Port)
-	log.Printf("[VN] Server đang chạy trên cổng %s", cf.AppConfig.Port)
-	if err := r.Run(addr); err != nil {
+	port := fmt.Sprintf(":%s", cf.AppConfig.Port)
+	if err := r.Run(port); err != nil {
 		log.Fatalf("[VN]Server bị dừng đột ngột: %v", err)
 	}
 }
