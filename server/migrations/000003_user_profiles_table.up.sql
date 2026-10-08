@@ -18,5 +18,5 @@ COMMENT ON COLUMN user_profiles.preferences IS 'Cài đặt và tùy chọn cá 
 COMMENT ON COLUMN user_profiles.created_at IS 'Thời điểm bản ghi được tạo';
 COMMENT ON COLUMN user_profiles.updated_at IS 'Thời điểm bản ghi được cập nhật gần nhất';
 
--- Tạo index GIN cho cột preferences
+-- [VN] Tạo index GIN cho cột preferences
 CREATE INDEX idx_user_profiles_preferences ON user_profiles USING gin (preferences);

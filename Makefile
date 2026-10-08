@@ -92,6 +92,7 @@ clean: ## [VN] Dừng và xóa toàn bộ container, network, volumes của dự
 # ----------------------------------------------------------------------
 DB_MIGRATIONS_DIR = migrations
 SERVER_CONTAINER = terra_server_dev
+DB_URL = postgres://terra_user:terra_secret@postgres:5432/terra_db?sslmode=disable
 
 migration: ## [VN] Tạo migration file mới: make migration name=<tên>
 	docker exec $(SERVER_CONTAINER) migrate create -ext sql -dir $(DB_MIGRATIONS_DIR) -seq $(name)
