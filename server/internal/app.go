@@ -1,5 +1,6 @@
 package internal
 
 type AppConfig struct {
-	Port string
+	AppEnv   string
+	Port     string
 }

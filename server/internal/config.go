@@ -18,7 +18,8 @@ func NewConfig() (*config, error) {
 	}
 
 	appConfig := &AppConfig{
-		Port: os.Getenv("PORT"),
+		AppEnv:   os.Getenv("APP_ENV"),
+		Port:     os.Getenv("PORT"),
 	}
 
 	dbConfig := &DBConfig{
