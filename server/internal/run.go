@@ -11,7 +11,7 @@ func Run() {
 		slog.Error("[VN] Lỗi khởi tạo cấu hình: %v", err)
 	}
 
-	cleanupLogger, err := InitLogger(cf.AppConfig)
+	accessWriter, cleanupLogger, err := InitLogger(cf.AppConfig)
 	if err != nil {
 		fmt.Printf("[VN] Không thể khởi tạo log roller: %v\n", err)
 		return
@@ -28,7 +28,7 @@ func Run() {
 	}
 	_ = db
 
-	r := SetupRouter(cf.AppConfig)
+	r := SetupRouter(cf.AppConfig, accessWriter)
 	port := fmt.Sprintf(":%s", cf.AppConfig.Port)
 	if err := r.Run(port); err != nil {
 		slog.Error("[VN] Server bị dừng đột ngột: %v", err)
