@@ -7,6 +7,9 @@ ENV GOPROXY=https://proxy.golang.org,direct
 
 RUN apk add --no-cache git ca-certificates tzdata
 
+# Install golang-migrate CLI with postgres support
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.0
+
 COPY go.mod go.sum* ./
 RUN go mod download
 
@@ -23,7 +26,9 @@ RUN apk add --no-cache ca-certificates tzdata curl && \
     addgroup -S -g 1001 appgroup && \
     adduser -S -u 1001 -G appgroup appuser
 
-COPY --from=builder /app/bin/server /app/server
+COPY --from=builder --chown=1001:1001 /app/bin/server /app/server
+COPY --from=builder --chown=1001:1001 /go/bin/migrate /usr/local/bin/migrate
+COPY --from=builder --chown=1001:1001 /app/migrations /app/migrations
 
 USER 1001:1001
 
