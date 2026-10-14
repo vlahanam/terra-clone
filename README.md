@@ -14,6 +14,7 @@ Dự án **Terra Clone** được thiết kế và xây dựng theo mô hình Mo
 6. [Kiến trúc Backend & Tiêu chuẩn Mã nguồn](#-kiến-trúc-backend--tiêu-chuẩn-mã-nguồn)
 7. [Hướng dẫn Bắt đầu Nhanh (Quick Start)](#-hướng-dẫn-bắt-đầu-nhanh-quick-start)
 8. [Danh mục Lệnh Makefile Toàn diện](#-danh-mục-lệnh-makefile-toàn-diện)
+9. [Quy Trình Phát Triển & Chuẩn Mực Agent (AGENTS.md)](#-quy-trình-phát-triển--chuẩn-mực-agent-agentsmd)
 
 ---
 
@@ -57,10 +58,13 @@ terra-clone/
 ├── .dockerignore                 # Docker ignore cấp root
 ├── .env.example                  # Template biến môi trường toàn dự án
 ├── .env                          # Biến môi trường hiện tại của Docker Compose
+├── AGENTS.md                     # Quy chuẩn & quy trình phát triển bắt buộc cho AI Agent
 ├── docker-compose.yml            # Compose cho Dev / Local (Air live-reload)
 ├── docker-compose.staging.yml    # Compose cho Staging (Multi-stage test)
 ├── docker-compose.product.yml    # Compose cho Production (Hardened, non-root)
 ├── Makefile                      # Trình quản lý toàn bộ tác vụ CLI
+├── plans/                        # Kế hoạch chi tiết từng chức năng trước khi code
+├── docs/                         # Toàn bộ tài liệu kiến trúc, PDR, roadmap & guidelines
 ├── nginx/
 │   ├── Dockerfile                # Dockerfile Nginx cho Dev / Local
 │   ├── Dockerfile.staging        # Dockerfile Nginx cho Staging
@@ -401,3 +405,16 @@ make help
 | `make nginx-reload`             | Nạp lại cấu hình Nginx tức thời mà không làm gián đoạn container            |
 | `make psql-cli` / `make db-cli` | Mở giao diện dòng lệnh PostgreSQL CLI (`psql`) trong container database     |
 | `make clean`                    | Dừng và xóa sạch toàn bộ container, mạng nội bộ và volumes của dự án        |
+
+---
+
+## 🤖 Quy Trình Phát Triển & Chuẩn Mực Agent (AGENTS.md)
+
+Dự án áp dụng quy chuẩn phát triển tự động hóa nghiêm ngặt đối với AI Agent và các kỹ sư phát triển thông qua tệp quy tắc [`AGENTS.md`](file:///home/wsl-admin/projects/terra-clone/AGENTS.md). 
+
+Mọi tính năng hoặc thay đổi hệ thống đều bắt buộc trải qua quy trình **4 bước tuần tự**:
+1. **Lập Kế Hoạch (Planning)**: Bắt buộc khởi tạo file kế hoạch chi tiết trong thư mục [`plans/<feature>.md`](file:///home/wsl-admin/projects/terra-clone/plans) (xác định mục tiêu, thiết kế schema, các bước triển khai, kế hoạch test).
+2. **Nắm Bắt Kiến Trúc & Convention**: Đọc và đối chiếu toàn bộ tài liệu quy chuẩn trong [`docs/`](file:///home/wsl-admin/projects/terra-clone/docs) ([`design-guidelines.md`](file:///home/wsl-admin/projects/terra-clone/docs/design-guidelines.md), [`system-architecture.md`](file:///home/wsl-admin/projects/terra-clone/docs/system-architecture.md), [`codebase-summary.md`](file:///home/wsl-admin/projects/terra-clone/docs/codebase-summary.md),...).
+3. **Triển Khai Mã Nguồn**: Thực thi code theo đúng plan, tuân thủ Clean Layered Architecture (`Controller -> Service -> Repository`), xử lý lỗi bằng `common.DefaultError`, migration chuẩn `golang-migrate`.
+4. **Đồng Bộ Tài Liệu & Cổng Đóng Task (Mandatory Gate)**: Cập nhật tài liệu tương ứng trong `docs/` (`codebase-summary.md`, `system-architecture.md`, `deployment-guide.md`, `project-roadmap.md`) và `README.md`. **Tuyệt đối không được phép kết thúc task nếu chưa hoàn thành bước này.**
+
