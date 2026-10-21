@@ -276,44 +276,44 @@ type stackTracer interface {
 
 var ErrNotFound = DefaultError{
 	StatusField: http.StatusText(http.StatusNotFound),
-	ErrorField:  "[VN] Không tìm thấy tài nguyên được yêu cầu",
+	ErrorField:  "Requested resource not found",
 	CodeField:   http.StatusNotFound,
 }
 
 var ErrUnauthorized = DefaultError{
 	StatusField: http.StatusText(http.StatusUnauthorized),
-	ErrorField:  "[VN] Yêu cầu không thể được cấp quyền",
+	ErrorField:  "Request cannot be authorized",
 	CodeField:   http.StatusUnauthorized,
 }
 
 var ErrForbidden = DefaultError{
 	StatusField: http.StatusText(http.StatusForbidden),
-	ErrorField:  "[VN] Bạn không có quyền thực hiện hành động này",
+	ErrorField:  "You do not have permission to perform this action",
 	CodeField:   http.StatusForbidden,
 }
 
 var ErrInternalServerError = DefaultError{
 	StatusField: http.StatusText(http.StatusInternalServerError),
-	ErrorField:  "[VN] Đã xảy ra lỗi máy chủ nội bộ, vui lòng liên hệ với quản trị viên hệ thống",
+	ErrorField:  "An internal server error occurred, please contact system administrator",
 	CodeField:   http.StatusInternalServerError,
 }
 
 var ErrBadRequest = DefaultError{
 	StatusField: http.StatusText(http.StatusBadRequest),
-	ErrorField:  "[VN] Yêu cầu không hợp lệ hoặc chứa các tham số sai định dạng",
+	ErrorField:  "Invalid request or malformed parameters",
 	CodeField:   http.StatusBadRequest,
 }
 
 var ErrUnsupportedMediaType = DefaultError{
 	StatusField: http.StatusText(http.StatusUnsupportedMediaType),
-	ErrorField:  "[VN] Yêu cầu đang sử dụng định dạng nội dung không được hỗ trợ",
+	ErrorField:  "Unsupported media type format",
 	CodeField:   http.StatusUnsupportedMediaType,
 }
 
 var ErrConflict = DefaultError{
 	StatusField: http.StatusText(http.StatusConflict),
-	ErrorField:  "[VN] Không thể tạo tài nguyên do xảy ra xung đột dữ liệu",
+	ErrorField:  "Resource could not be created due to a conflict",
 	CodeField:   http.StatusConflict,
 }
 
-var ErrRecordNotFound = errors.New("[VN] Không tìm thấy bản ghi")
+var ErrRecordNotFound = errors.New("record not found")

@@ -298,8 +298,8 @@ Cung cấp phân cấp lỗi chi tiết, hỗ trợ lấy StackTrace nội bộ 
   "code": 404,
   "status": "Not Found",
   "request": "d7ef54b1-ec15-46e6-bccb-524b82c035e6",
-  "message": "Không tìm thấy tài nguyên được yêu cầu",
-  "reason": "Người dùng có ID được yêu cầu không tồn tại",
+  "message": "Requested resource not found",
+  "reason": "User with the specified ID does not exist",
   "details": {
     "field": "id"
   }
@@ -318,7 +318,7 @@ Các hằng số lỗi chuẩn tích hợp sẵn:
 
 ### 3. Hệ thống Structured Logging & Xoay vòng File Log
 
-- Sử dụng thư viện chuẩn **`log/slog`** kết hợp **JSON Handler** với tùy chọn `AddSource: true`.
+- Sử dụng thư viện chuẩn **`log/slog`** kết hợp **JSON Handler** với tùy chọn `AddSource: true`. Toàn bộ log message (`msg`) bắt buộc viết bằng Tiếng Anh.
 - Sử dụng **`lumberjack/v3`** để xoay vòng file log tự động tại `server/logs/app.log`:
   - Kích thước tối đa mỗi file: `10MB`.
   - Số lượng bản backup giữ lại: `5 file`.
@@ -328,6 +328,12 @@ Các hằng số lỗi chuẩn tích hợp sẵn:
   - `Dev / Local`: Sử dụng `io.MultiWriter` xuất đồng thời ra cả Terminal (`os.Stdout`) và file `logs/app.log` ở cấp độ `LevelInfo`.
   - `Staging / Production`: Chỉ ghi vào file với cấp độ `LevelWarn` nhằm tối ưu hiệu năng I/O.
 - Đảm bảo **Zero Log Loss**: Sử dụng cơ chế `defer cleanupLogger()` để flush toàn bộ buffer trong RAM xuống đĩa cứng khi server dừng.
+
+### 4. Quy Chuẩn Chú Thích (Code Comments) & Thông Điệp (Messages)
+
+- **Code Comments**: Mọi dòng chú thích trong mã nguồn (Go `//`, `/* */`, SQL `--`, YAML/Dockerfile/Shell `#`) bắt buộc phải có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt rõ ràng, súc tích (ví dụ: `// [VN] Khởi tạo kết nối cơ sở dữ liệu`).
+- **Messages**: Toàn bộ thông điệp trong hệ thống (log `slog`, API error `message`, `reason`, native Go errors `errors.New`, `fmt.Errorf`, exception/panic string, git commit messages) bắt buộc 100% bằng **Tiếng Anh (English)**.
+- **Quy tắc phân định**: Tiền tố `[VN]` CHỈ dùng cho code comment, tuyệt đối không đưa `[VN]` vào nội dung các chuỗi message hệ thống hoặc API response.
 
 ---
 
@@ -451,6 +457,6 @@ Dự án áp dụng quy chuẩn phát triển tự động hóa nghiêm ngặt �
 Mọi tính năng hoặc thay đổi hệ thống đều bắt buộc trải qua quy trình **4 bước tuần tự**:
 1. **Lập Kế Hoạch (Planning)**: Bắt buộc khởi tạo thư mục kế hoạch theo định dạng `plans/YYYYMMDD-HHMMSS-<tên-plan>/` chứa tệp [`plan.md`](file:///home/wsl-admin/projects/terra-clone/plans) (nếu một mục tiêu) hoặc các tệp plan con kèm plan tổng hợp `plan.md` (nếu nhiều plan con) trước khi triển khai code.
 2. **Nắm Bắt Kiến Trúc & Convention**: Đọc và đối chiếu toàn bộ tài liệu quy chuẩn trong [`docs/`](file:///home/wsl-admin/projects/terra-clone/docs) ([`design-guidelines.md`](file:///home/wsl-admin/projects/terra-clone/docs/design-guidelines.md), [`system-architecture.md`](file:///home/wsl-admin/projects/terra-clone/docs/system-architecture.md), [`codebase-summary.md`](file:///home/wsl-admin/projects/terra-clone/docs/codebase-summary.md),...).
-3. **Triển Khai Mã Nguồn**: Thực thi code theo đúng plan, tuân thủ Clean Layered Architecture (`Controller -> Service -> Repository`), xử lý lỗi bằng `common.DefaultError`, migration chuẩn `golang-migrate`.
+3. **Triển Khai Mã Nguồn**: Thực thi code theo đúng plan, tuân thủ Clean Layered Architecture (`Controller -> Service -> Repository`), xử lý lỗi bằng `common.DefaultError`, migration chuẩn `golang-migrate`, và tuân thủ tuyệt đối quy chuẩn **Code Comment có prefix `[VN]`** cùng **Messages viết bằng Tiếng Anh**.
 4. **Đồng Bộ Tài Liệu & Cổng Đóng Task (Mandatory Gate)**: Cập nhật tài liệu tương ứng trong `docs/` (`codebase-summary.md`, `system-architecture.md`, `deployment-guide.md`, `project-roadmap.md`) và `README.md`. **Tuyệt đối không được phép kết thúc task nếu chưa hoàn thành bước này.**
 

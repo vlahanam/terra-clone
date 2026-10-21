@@ -34,7 +34,7 @@ func InitLogger(c *AppConfig) (io.Writer, func() error, error) {
 		},
 	)
 	if err != nil {
-		panic("[VN] Không thể khởi tạo log roller: " + err.Error())
+		panic("failed to initialize application log roller: " + err.Error())
 	}
 
 	accessRoller, err := lumberjack.NewRoller(
@@ -47,7 +47,7 @@ func InitLogger(c *AppConfig) (io.Writer, func() error, error) {
 		},
 	)
 	if err != nil {
-		panic("[VN] Không thể khởi tạo access log roller: " + err.Error())
+		panic("failed to initialize access log roller: " + err.Error())
 	}
 
 	env := c.AppEnv

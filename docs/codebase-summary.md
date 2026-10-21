@@ -158,7 +158,7 @@ Cung cấp bộ công cụ quản lý lỗi cấp doanh nghiệp:
   - `DetailsField` (`details`): Map chứa thông tin chi tiết lỗi (ví dụ: tên trường dữ liệu không hợp lệ).
   - `err error`: Đối tượng lỗi gốc được bọc lại (wrapped error) để lấy stacktrace qua `github.com/pkg/errors`.
 - Hằng số lỗi định sẵn:
-  - `ErrNotFound` (404), `ErrUnauthorized` (401), `ErrForbidden` (403), `ErrInternalServerError` (500), `ErrBadRequest` (400), `ErrUnsupportedMediaType` (415), `ErrConflict` (409).
+  - `ErrNotFound` (404), `ErrUnauthorized` (401), `ErrForbidden` (403), `ErrInternalServerError` (500), `ErrBadRequest` (400), `ErrUnsupportedMediaType` (415), `ErrConflict` (409), `ErrRecordNotFound`. Toàn bộ thông điệp lỗi mặc định được chuẩn hóa 100% bằng Tiếng Anh.
 
 #### 2. [`success_response.go`](file:///home/wsl-admin/projects/terra-clone/server/common/success_response.go)
 Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
@@ -266,3 +266,14 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 ### 2.10. Tầng Data Transfer Objects: [`dto/`](file:///home/wsl-admin/projects/terra-clone/server/dto)
 - [`auth_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/auth_dto.go): Định nghĩa cấu trúc binding JSON cho luồng xác thực (`RegisterRequest`, `LoginRequest`, `RefreshTokenRequest`, `AuthResponse`).
 - [`user_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/user_dto.go): Định nghĩa cấu trúc binding và serialization cho quản trị người dùng (`CreateUserRequest`, `UpdateUserRequest`, `ListUsersQuery`, `UserProfileResponse`, `UserResponse`).
+
+---
+
+### 2.11. Quy Chuẩn Chú Thích & Thông Điệp (Language & Comment Conventions)
+- **Code Comments**: Mọi dòng chú thích trong mã nguồn (Golang `//`, `/* */`, SQL `--`, YAML `#`, Dockerfile `#`, Makefile `#`, Shell Script `#`) bắt buộc phải có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt.
+- **Messages**: Tất cả các loại thông điệp (messages) trong hệ thống bắt buộc viết bằng Tiếng Anh (English):
+  - Log messages trong `slog` (ví dụ: `slog.Info("server started successfully", ...)`).
+  - Error messages (`ErrorField`, `ReasonField` trong `common.DefaultError`, chuỗi trong `errors.New`, `fmt.Errorf`).
+  - Phản hồi HTTP API hoặc status text.
+  - Commit messages trong Git.
+- **Phân định rõ ràng**: Tiền tố `[VN]` chỉ áp dụng cho chú thích mã nguồn, tuyệt đối không đặt tiền tố `[VN]` vào nội dung chuỗi message của ứng dụng.

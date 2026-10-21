@@ -56,13 +56,53 @@ Hệ thống phải xác thực cấu hình và kiểm tra kết nối với cá
      user, err := repo.FindUserByID(ctx, id)
      if err != nil {
          return nil, common.ErrNotFound.
-             WithReason("Người dùng không tồn tại trên hệ thống").
+             WithReason("User does not exist in the system").
              WithTrace(err)
      }
      ```
 3. **Phân tách thông tin nhạy cảm**:
-   - Trường `ReasonField` / `ErrorField`: Chứa thông báo an toàn, thân thiện để gửi tới người dùng.
+   - Trường `ReasonField` / `ErrorField`: Chứa thông báo an toàn, thân thiện để gửi tới người dùng (viết bằng Tiếng Anh).
    - Trường `DebugField` và `StackTrace()`: Chỉ ghi vào file log nội bộ hoặc phục vụ debug ở môi trường `local`, không serialize ra payload JSON gửi tới client ở môi trường `production`.
+
+### 2.3. Quy Chuẩn Chú Thích (Code Comments) & Thông Điệp (Messages)
+
+Nhằm đảm bảo sự nhất quán tuyệt đối giữa mã nguồn và tài liệu trong toàn bộ hệ sinh thái dự án:
+
+#### 1. Quy chuẩn Chú thích (Code Comments):
+- **Bắt buộc tiền tố `[VN]`**: Mọi dòng chú thích trong mã nguồn (Golang `//`, `/* */`, SQL `--`, YAML `#`, Dockerfile `#`, Makefile `#`, Shell Script `#`) **BẮT BUỘC** phải có tiền tố `[VN]` ngay sau ký hiệu chú thích.
+- Chú thích được viết bằng tiếng Việt rõ nghĩa, mô tả mục đích, nghiệp vụ hoặc lý do kỹ thuật.
+- **Ví dụ đúng (Do)**:
+  ```go
+  // [VN] Khởi tạo kết nối PostgreSQL với cấu hình Connection Pool
+  func ConnectDb(cfg *AppConfig) (*gorm.DB, error) {
+      // [VN] Kiểm tra ping CSDL theo nguyên tắc Fail-Fast
+      if err := sqlDB.Ping(); err != nil {
+          return nil, err
+      }
+      return db, nil
+  }
+  ```
+  ```sql
+  -- [VN] Tạo bảng lưu trữ thông tin người dùng với UUIDv7
+  CREATE TABLE IF NOT EXISTS users ( ... );
+  ```
+- **Ví dụ sai (Don't)**:
+  ```go
+  // Connect to database (Sai vì thiếu tiền tố [VN])
+  // Khởi tạo database (Sai vì thiếu tiền tố [VN])
+  ```
+
+#### 2. Quy chuẩn Thông điệp (Messages):
+- **Bắt buộc viết bằng Tiếng Anh (English)**: Toàn bộ thông điệp trong hệ thống **BẮT BUỘC 100% bằng Tiếng Anh**. Bao gồm:
+  - Thông điệp ghi log qua `slog` (`slog.Info("database connection established")`, `slog.Error("failed to query user", ...)`).
+  - Thông báo lỗi API (`ErrorField` trong `common.DefaultError`, ví dụ: `"Requested resource not found"`).
+  - Lý do chi tiết của lỗi (`ReasonField` trong `common.DefaultError`, ví dụ: `"User with the given ID does not exist"`).
+  - Chuỗi lỗi Go (`errors.New("record not found")`, `fmt.Errorf("failed to parse token: %w", err)`).
+  - Thông điệp ngoại lệ (`panic("failed to initialize logger")`).
+  - Git commit messages.
+- **LƯU Ý ĐẶC BIỆT (Strict Separation)**:
+  - Tiền tố `[VN]` **CHỈ dành riêng cho code comment**.
+  - **TUYỆT ĐỐI CẤM** đưa tiền tố `[VN]` vào nội dung chuỗi message của mã nguồn (ví dụ: cấm `errors.New("[VN] Record not found")` hoặc `ErrorField: "[VN] Not found"`).
 
 ---
 
@@ -99,15 +139,15 @@ Toàn bộ API thành công phải trả về cấu trúc tuân theo [`common.su
 ```
 
 ### 3.3. Chuẩn Hóa Payload Phản Hồi Thất Bại
-Khi có lỗi, API trả về cấu trúc lỗi chi tiết theo [`common.DefaultError`](file:///home/wsl-admin/projects/terra-clone/server/common/error_response.go):
+Khi có lỗi, API trả về cấu trúc lỗi chi tiết theo [`common.DefaultError`](file:///home/wsl-admin/projects/terra-clone/server/common/error_response.go) (lưu ý: `message` và `reason` luôn sử dụng Tiếng Anh):
 ```json
 {
   "id": "ERR_NOT_FOUND",
   "code": 404,
   "status": "Not Found",
   "request": "d7ef54b1-ec15-46e6-bccb-524b82c035e6",
-  "message": "Không tìm thấy tài nguyên được yêu cầu",
-  "reason": "Người dùng có ID được yêu cầu không tồn tại",
+  "message": "Requested resource not found",
+  "reason": "User with the specified ID does not exist",
   "details": {
     "field": "id"
   }
@@ -159,6 +199,7 @@ Khi có lỗi, API trả về cấu trúc lỗi chi tiết theo [`common.Default
 
 ### 5.1. Tiêu Chuẩn Structured Logging
 - Mọi thông tin ghi nhận lỗi hoặc sự kiện hệ thống phải dùng `log/slog` thay thế cho `fmt.Print` hoặc `log.Fatal`.
+- **Thông điệp log (`msg`)**: Bắt buộc viết hoàn toàn bằng **Tiếng Anh (English)**, không chứa tiền tố `[VN]` trong chuỗi message.
 - Phân loại cấp độ log:
   - `LevelInfo`: Dùng cho các sự kiện dòng chảy thông thường (khởi động dịch vụ, định tuyến hoàn tất, kết nối CSDL thành công).
   - `LevelWarn`: Dùng cho các tình huống bất thường nhưng ứng dụng tự xử lý được (file `.env` thiếu và dùng fallback biến hệ thống, số lần đăng nhập sai tăng cao).

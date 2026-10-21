@@ -94,6 +94,15 @@ flowchart TD
   - Không bao giờ nuốt lỗi (`_ = err`).
   - Lỗi phải được bọc bằng [`common.DefaultError`](file:///home/wsl-admin/projects/terra-clone/server/common/error_response.go) kèm `.WithTrace(err)` để lưu giữ StackTrace phục vụ debug.
   - Sử dụng `slog` có cấu trúc; tuyệt đối không log mật khẩu dạng plain-text, secret tokens hoặc PII nhạy cảm.
+- **Quy chuẩn Chú thích (Code Comments) & Thông điệp (Messages)**:
+  - **Code Comments**: Bắt buộc **mọi** dòng comment trong mã nguồn (Go `//`, `/* */`, SQL `--`, YAML/Dockerfile `#`, Shell script `#`) phải có tiền tố `[VN]` ở đầu. Ví dụ: `// [VN] Khởi tạo kết nối cơ sở dữ liệu`.
+  - **Messages**: Bắt buộc **toàn bộ** thông điệp hệ thống phải được viết bằng **Tiếng Anh (English)**. Bao gồm:
+    - Log messages trong `slog` (ví dụ: `slog.Info("server started successfully", ...)`).
+    - Error messages (`ErrorField` trong `common.DefaultError`, chuỗi trong `errors.New(...)`, `fmt.Errorf(...)`, `panic(...)`).
+    - Lý do lỗi gửi client (`ReasonField` trong `common.DefaultError`).
+    - Phản hồi API hoặc status text.
+    - Git commit messages.
+  - **CẤM**: Tuyệt đối **KHÔNG** đưa tiền tố `[VN]` vào nội dung chuỗi message trả về cho client hoặc ghi vào log. Tiền tố `[VN]` **CHỈ dành riêng cho code comment**.
 - **Cơ sở dữ liệu & Migrations**:
   - Mọi thay đổi bảng phải tạo cặp tệp `{number}_{name}.up.sql` và `{number}_{name}.down.sql` trong [`server/migrations/`](file:///home/wsl-admin/projects/terra-clone/server/migrations).
   - Khóa chính luôn dùng kiểu `UUID` mặc định `uuidv7()`.
@@ -137,6 +146,9 @@ flowchart TD
 3. **Tính Bất Biến của Response Schema**:
    - Tất cả API trả về kết quả thành công phải bao bọc trong `common.SuccessResponse(c, statusCode, data, paging, extra)`.
    - Tất cả lỗi phải dùng `common.DefaultError` hoặc dẫn xuất của nó để đảm bảo tính nhất quán trên toàn hệ sinh thái.
+4. **Quy Chuẩn Ngôn Ngữ Chú Thích & Thông Điệp (Comment & Message Policy)**:
+   - Tất cả các comment trong code phải có prefix `[VN]` ở đầu.
+   - Tất cả các message (logs, errors, reasons, HTTP responses, console prints, git commits) phải viết bằng Tiếng Anh.
 
 ---
 
@@ -147,6 +159,7 @@ Trước khi thông báo hoàn tất bất kỳ chức năng nào tới người
 - [ ] Đã tạo thư mục theo định dạng `plans/YYYYMMDD-HHMMSS-<task>/` và file `plan.md` (kèm các plan con nếu có) ngay từ đầu task.
 - [ ] Đã đọc và đối chiếu các quy chuẩn trong `docs/design-guidelines.md` và `docs/system-architecture.md`.
 - [ ] Mã nguồn tuân thủ Clean Architecture: Controller $\rightarrow$ Service $\rightarrow$ Repository.
+- [ ] Tuân thủ quy chuẩn chú thích & thông điệp: Toàn bộ code comment có tiền tố `[VN]` ở đầu; toàn bộ messages (log, error, reason, response) viết bằng Tiếng Anh.
 - [ ] Có migration `.up.sql` và `.down.sql` nếu có thay đổi CSDL; migration chạy trơn tru không lỗi.
 - [ ] Đã xử lý lỗi chuẩn `common.DefaultError` với đầy đủ context và không nuốt lỗi.
 - [ ] Đã cập nhật đầy đủ [`docs/codebase-summary.md`](file:///home/wsl-admin/projects/terra-clone/docs/codebase-summary.md).

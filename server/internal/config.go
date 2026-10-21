@@ -12,9 +12,10 @@ type config struct {
 	DBConfig  *DBConfig
 }
 
+// [VN] NewConfig nạp cấu hình từ file .env hoặc biến môi trường hệ thống theo nguyên tắc Fail-Fast
 func NewConfig() (*config, error) {
 	if err := godotenv.Load(); err != nil {
-		fmt.Println("[VN] Warning: .env file not found, relying on system environment variables")
+		fmt.Println("Warning: .env file not found, relying on system environment variables")
 	}
 
 	appEnv := os.Getenv("APP_ENV")
@@ -25,7 +26,7 @@ func NewConfig() (*config, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		if appEnv == "staging" || appEnv == "production" {
-			return nil, fmt.Errorf("[VN] thiếu cấu hình bắt buộc JWT_SECRET cho môi trường %s", appEnv)
+			return nil, fmt.Errorf("missing required environment variable JWT_SECRET for environment %s", appEnv)
 		}
 		jwtSecret = "terra_dev_jwt_secret_key_2026_very_secure_string_min_32_bytes"
 	}
@@ -46,7 +47,7 @@ func NewConfig() (*config, error) {
 	}
 
 	if appConfig.Port == "" || dbConfig.Host == "" || dbConfig.Name == "" {
-		return nil, fmt.Errorf("[VN] missing required database environment variables")
+		return nil, fmt.Errorf("missing required database environment variables")
 	}
 
 	return &config{
