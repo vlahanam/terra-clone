@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// [VN] Các loại token JWT và thời hạn hiệu lực
 const (
 	TokenTypeAccess  = "access"
 	TokenTypeRefresh = "refresh"
@@ -16,6 +17,7 @@ const (
 	RefreshTokenDuration = 7 * 24 * time.Hour
 )
 
+// [VN] UserClaims lưu trữ thông tin định danh và phân quyền bên trong JWT payload
 type UserClaims struct {
 	UserID       uuid.UUID `json:"user_id"`
 	PublicID     string    `json:"public_id"`
@@ -25,17 +27,19 @@ type UserClaims struct {
 	jwt.RegisteredClaims
 }
 
+// [VN] TokenPair đại diện cho cặp token trả về cho client sau khi xác thực thành công
 type TokenPair struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	TokenType    string `json:"token_type"`
-	ExpiresIn    int64  `json:"expires_in"` // seconds
+	ExpiresIn    int64  `json:"expires_in"` // [VN] Thời hạn access token tính bằng giây
 }
 
+// [VN] GenerateTokenPair sinh cặp Access Token và Refresh Token cho người dùng
 func GenerateTokenPair(secret string, userID uuid.UUID, publicID, email string, tokenVersion int) (*TokenPair, error) {
 	now := time.Now()
 
-	// Access Token
+	// [VN] Tạo payload cho Access Token
 	accessClaims := UserClaims{
 		UserID:       userID,
 		PublicID:     publicID,
@@ -51,10 +55,10 @@ func GenerateTokenPair(secret string, userID uuid.UUID, publicID, email string, 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	signedAccess, err := accessToken.SignedString([]byte(secret))
 	if err != nil {
-		return nil, fmt.Errorf("lỗi ký access token: %w", err)
+		return nil, fmt.Errorf("failed to sign access token: %w", err)
 	}
 
-	// Refresh Token
+	// [VN] Tạo payload cho Refresh Token
 	refreshClaims := UserClaims{
 		UserID:       userID,
 		PublicID:     publicID,
@@ -70,7 +74,7 @@ func GenerateTokenPair(secret string, userID uuid.UUID, publicID, email string, 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	signedRefresh, err := refreshToken.SignedString([]byte(secret))
 	if err != nil {
-		return nil, fmt.Errorf("lỗi ký refresh token: %w", err)
+		return nil, fmt.Errorf("failed to sign refresh token: %w", err)
 	}
 
 	return &TokenPair{
@@ -81,10 +85,11 @@ func GenerateTokenPair(secret string, userID uuid.UUID, publicID, email string, 
 	}, nil
 }
 
+// [VN] ValidateToken kiểm tra tính hợp lệ, chữ ký và loại token của chuỗi JWT
 func ValidateToken(secret, tokenString, expectedType string) (*UserClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("phương thức ký không được hỗ trợ: %v", t.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return []byte(secret), nil
 	})
@@ -95,11 +100,11 @@ func ValidateToken(secret, tokenString, expectedType string) (*UserClaims, error
 
 	claims, ok := token.Claims.(*UserClaims)
 	if !ok || !token.Valid {
-		return nil, fmt.Errorf("token không hợp lệ")
+		return nil, fmt.Errorf("invalid token claims")
 	}
 
 	if expectedType != "" && claims.TokenType != expectedType {
-		return nil, fmt.Errorf("loại token không khớp: mong đợi %s nhưng nhận %s", expectedType, claims.TokenType)
+		return nil, fmt.Errorf("token type mismatch: expected %s but got %s", expectedType, claims.TokenType)
 	}
 
 	return claims, nil

@@ -14,11 +14,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// [VN] Các hằng số quản lý chống tấn công Brute-force
 const (
+	// [VN] Số lần đăng nhập sai tối đa liên tiếp cho phép
 	MaxLoginAttempts = 5
-	AccountLockTime  = 15 * time.Minute
+	// [VN] Thời gian tạm khóa tài khoản sau khi vượt quá số lần nhập sai
+	AccountLockTime = 15 * time.Minute
 )
 
+// [VN] AuthService định nghĩa các nghiệp vụ xác thực người dùng
 type AuthService interface {
 	Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error)
 	Login(ctx context.Context, req *dto.LoginRequest) (*dto.AuthResponse, error)
@@ -34,6 +38,7 @@ type authService struct {
 	jwtSecret   string
 }
 
+// [VN] NewAuthService khởi tạo AuthService với các dependency cần thiết
 func NewAuthService(
 	userRepo repositories.UserRepository,
 	credRepo repositories.CredentialRepository,
@@ -48,8 +53,9 @@ func NewAuthService(
 	}
 }
 
+// [VN] Register đăng ký người dùng mới trong transaction qua 3 bảng: users, user_credentials, user_profiles
 func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
-	// 1. Kiểm tra email đã tồn tại hay chưa
+	// [VN] 1. Kiểm tra email đã tồn tại hay chưa
 	existingUser, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err == nil && existingUser != nil {
 		return nil, common.ErrConflict.
@@ -61,7 +67,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 			WithTrace(err)
 	}
 
-	// 2. Hash mật khẩu bằng bcrypt
+	// [VN] 2. Hash mật khẩu bằng bcrypt
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
@@ -71,14 +77,14 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 
 	publicID := common.GeneratePublicID("usr")
 	newUser := &models.User{
-		PublicID: req.FullName, // sẽ được gán lại đúng publicID bên dưới
+		PublicID: req.FullName, // [VN] Sẽ được gán lại đúng publicID bên dưới
 		Email:    req.Email,
 		FullName: req.FullName,
 		Status:   models.UserStatusActive,
 	}
 	newUser.PublicID = publicID
 
-	// 3. Thực thi Database Transaction khởi tạo 3 bảng
+	// [VN] 3. Thực thi Database Transaction khởi tạo 3 bảng
 	db := s.userRepo.GetDB()
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := s.userRepo.Create(ctx, tx, newUser); err != nil {
@@ -116,7 +122,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 			WithTrace(err)
 	}
 
-	// 4. Phát sinh cặp JWT token
+	// [VN] 4. Phát sinh cặp JWT token
 	tokens, err := common.GenerateTokenPair(s.jwtSecret, newUser.ID, newUser.PublicID, newUser.Email, 1)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
@@ -133,8 +139,9 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 	}, nil
 }
 
+// [VN] Login xác thực đăng nhập người dùng, kiểm tra khóa brute-force và phát sinh token
 func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.AuthResponse, error) {
-	// 1. Tìm người dùng theo Email
+	// [VN] 1. Tìm người dùng theo Email
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -146,7 +153,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 			WithTrace(err)
 	}
 
-	// 2. Kiểm tra trạng thái tài khoản
+	// [VN] 2. Kiểm tra trạng thái tài khoản
 	if user.Status == models.UserStatusDeleted {
 		return nil, common.ErrUnauthorized.
 			WithReason("Tài khoản này không còn hoạt động trên hệ thống")
@@ -156,7 +163,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 			WithReason("Tài khoản của bạn đã bị vô hiệu hóa, vui lòng liên hệ quản trị viên")
 	}
 
-	// 3. Tra cứu credentials nếu chưa có sẵn
+	// [VN] 3. Tra cứu credentials nếu chưa có sẵn
 	creds := user.Credentials
 	if creds == nil {
 		creds, err = s.credRepo.FindByUserID(ctx, user.ID)
@@ -167,15 +174,15 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 		}
 	}
 
-	// 4. Kiểm tra tài khoản có bị khóa tạm thời do brute-force
+	// [VN] 4. Kiểm tra tài khoản có bị khóa tạm thời do brute-force
 	if creds.IsLocked() {
 		return nil, common.ErrForbidden.
 			WithReasonf("Tài khoản đang bị tạm khóa đến %s do nhập sai mật khẩu nhiều lần", creds.LockedUntil.Format("15:04:05 02/01/2006"))
 	}
 
-	// 5. So khớp mật khẩu băm
+	// [VN] 5. So khớp mật khẩu băm
 	if err := bcrypt.CompareHashAndPassword([]byte(creds.PasswordHash), []byte(req.Password)); err != nil {
-		// Nhập sai mật khẩu -> ghi nhận số lần sai và tự khóa nếu vượt ngưỡng
+		// [VN] Nhập sai mật khẩu -> ghi nhận số lần sai và tự khóa nếu vượt ngưỡng
 		updatedCreds, recErr := s.credRepo.RecordFailedLogin(ctx, nil, user.ID, MaxLoginAttempts, AccountLockTime)
 		if recErr != nil {
 			return nil, common.ErrInternalServerError.
@@ -193,14 +200,14 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 			WithReasonf("Email hoặc mật khẩu không chính xác. Bạn còn %d lần thử", remainingAttempts)
 	}
 
-	// 6. Đăng nhập thành công -> Reset số lần nhập sai
+	// [VN] 6. Đăng nhập thành công -> Reset số lần nhập sai
 	if err := s.credRepo.ResetFailedLogin(ctx, nil, user.ID); err != nil {
 		return nil, common.ErrInternalServerError.
 			WithReason("Lỗi làm mới trạng thái phiên đăng nhập").
 			WithTrace(err)
 	}
 
-	// 7. Tạo JWT Token Pair
+	// [VN] 7. Tạo JWT Token Pair
 	tokens, err := common.GenerateTokenPair(s.jwtSecret, user.ID, user.PublicID, user.Email, creds.TokenVersion)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
@@ -217,8 +224,9 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 	}, nil
 }
 
+// [VN] RefreshToken cấp lại Access Token mới dựa trên Refresh Token còn hạn
 func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.AuthResponse, error) {
-	// 1. Kiểm tra tính hợp lệ và loại token
+	// [VN] 1. Kiểm tra tính hợp lệ và loại token
 	claims, err := common.ValidateToken(s.jwtSecret, req.RefreshToken, common.TokenTypeRefresh)
 	if err != nil {
 		return nil, common.ErrUnauthorized.
@@ -226,7 +234,7 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 			WithTrace(err)
 	}
 
-	// 2. Tra cứu người dùng và thông tin credential
+	// [VN] 2. Tra cứu người dùng và thông tin credential
 	user, err := s.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
 		return nil, common.ErrUnauthorized.
@@ -249,13 +257,13 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 		}
 	}
 
-	// 3. Kiểm tra token_version xem token này đã bị thu hồi chưa
+	// [VN] 3. Kiểm tra token_version xem token này đã bị thu hồi chưa
 	if creds.TokenVersion != claims.TokenVersion {
 		return nil, common.ErrUnauthorized.
 			WithReason("Phiên đăng nhập này đã bị thu hồi do đăng xuất hoặc đổi mật khẩu")
 	}
 
-	// 4. Phát sinh Token Pair mới
+	// [VN] 4. Phát sinh Token Pair mới
 	tokens, err := common.GenerateTokenPair(s.jwtSecret, user.ID, user.PublicID, user.Email, creds.TokenVersion)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
@@ -272,6 +280,7 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	}, nil
 }
 
+// [VN] LogoutAll tăng token_version để thu hồi toàn bộ các phiên đăng nhập của người dùng
 func (s *authService) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 	if err := s.credRepo.IncrementTokenVersion(ctx, nil, userID); err != nil {
 		return common.ErrInternalServerError.
@@ -281,6 +290,7 @@ func (s *authService) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
+// [VN] GetMe lấy thông tin chi tiết người dùng đang đăng nhập
 func (s *authService) GetMe(ctx context.Context, userID uuid.UUID) (*dto.UserResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {

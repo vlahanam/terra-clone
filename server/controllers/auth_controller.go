@@ -10,14 +10,17 @@ import (
 	"github.com/vlahanam/terra-clone/services"
 )
 
+// [VN] AuthController điều phối tiếp nhận và xử lý HTTP request liên quan đến xác thực
 type AuthController struct {
 	authService services.AuthService
 }
 
+// [VN] NewAuthController khởi tạo AuthController với AuthService
 func NewAuthController(authService services.AuthService) *AuthController {
 	return &AuthController{authService: authService}
 }
 
+// [VN] Register tiếp nhận request đăng ký tài khoản mới
 func (ctrl *AuthController) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -39,6 +42,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, common.ResponseData(res))
 }
 
+// [VN] Login tiếp nhận request xác thực người dùng
 func (ctrl *AuthController) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -60,6 +64,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, common.ResponseData(res))
 }
 
+// [VN] RefreshToken cấp lại cặp token mới khi Access Token hết hạn
 func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -81,6 +86,7 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, common.ResponseData(res))
 }
 
+// [VN] LogoutAll thu hồi toàn bộ phiên đăng nhập của người dùng
 func (ctrl *AuthController) LogoutAll(c *gin.Context) {
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
@@ -97,10 +103,11 @@ func (ctrl *AuthController) LogoutAll(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, common.ResponseData(gin.H{
-		"message": "Đã thu hồi tất cả phiên đăng nhập thành công",
+		"message": "All sessions have been revoked successfully",
 	}))
 }
 
+// [VN] GetMe trả về thông tin chi tiết của người dùng đang đăng nhập
 func (ctrl *AuthController) GetMe(c *gin.Context) {
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {

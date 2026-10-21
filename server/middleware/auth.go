@@ -11,6 +11,7 @@ import (
 	"github.com/vlahanam/terra-clone/repositories"
 )
 
+// [VN] Các key lưu trữ trong Gin Context
 const (
 	ContextUserIDKey   = "user_id"
 	ContextPublicIDKey = "public_id"
@@ -18,7 +19,7 @@ const (
 	ContextClaimsKey   = "claims"
 )
 
-// RequireAuth middleware kiểm tra Header Authorization: Bearer <token> và xác thực token_version
+// [VN] RequireAuth middleware kiểm tra Header Authorization: Bearer <token> và xác thực token_version
 func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -48,7 +49,7 @@ func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) g
 			return
 		}
 
-		// Kiểm tra token_version với cơ sở dữ liệu nếu có CredentialRepository
+		// [VN] Kiểm tra token_version với cơ sở dữ liệu nếu có CredentialRepository
 		if credRepo != nil {
 			creds, err := credRepo.FindByUserID(c.Request.Context(), claims.UserID)
 			if err != nil || creds == nil || creds.TokenVersion != claims.TokenVersion {
@@ -68,16 +69,16 @@ func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) g
 	}
 }
 
-// GetCurrentUserID trích xuất UserID từ Gin Context
+// [VN] GetCurrentUserID trích xuất UserID từ Gin Context
 func GetCurrentUserID(c *gin.Context) (uuid.UUID, error) {
 	val, exists := c.Get(ContextUserIDKey)
 	if !exists {
-		return uuid.Nil, errors.New("không tìm thấy user_id trong ngữ cảnh request")
+		return uuid.Nil, errors.New("user_id not found in request context")
 	}
 
 	userID, ok := val.(uuid.UUID)
 	if !ok {
-		return uuid.Nil, errors.New("user_id sai kiểu dữ liệu")
+		return uuid.Nil, errors.New("invalid user_id data type")
 	}
 
 	return userID, nil

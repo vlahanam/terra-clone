@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// [VN] GeneratePublicID sinh định danh công khai ngẫu nhiên với tiền tố chỉ định (ví dụ: usr_...)
 func GeneratePublicID(prefix string) string {
 	bytes := make([]byte, 8)
 	if _, err := rand.Read(bytes); err != nil {

@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// [VN] SetupRouter khởi tạo Gin Engine, gắn middleware và khai báo các route API v1
 func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine {
 	if c.AppEnv == "staging" || c.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -24,7 +25,7 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 		gin.Recovery(),
 	)
 
-	// Health ping endpoints
+	// [VN] Các endpoint kiểm tra sức khỏe hệ thống (Health Check)
 	pingHandler := func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": "pong",
@@ -33,27 +34,27 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 	r.GET("/ping", pingHandler)
 	r.GET("/api/ping", pingHandler)
 
-	// Dependency Injection: Repositories
+	// [VN] Khởi tạo tầng Repositories qua Dependency Injection
 	userRepo := repositories.NewUserRepository(db)
 	credRepo := repositories.NewCredentialRepository(db)
 	profileRepo := repositories.NewProfileRepository(db)
 
-	// Dependency Injection: Services
+	// [VN] Khởi tạo tầng Services qua Dependency Injection
 	authService := services.NewAuthService(userRepo, credRepo, profileRepo, c.JWTSecret)
 	userService := services.NewUserService(userRepo, credRepo, profileRepo)
 
-	// Dependency Injection: Controllers
+	// [VN] Khởi tạo tầng Controllers qua Dependency Injection
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
 
-	// Auth Middleware
+	// [VN] Khởi tạo Middleware xác thực JWT
 	authMiddleware := middleware.RequireAuth(c.JWTSecret, credRepo)
 
-	// API Routing: /api/v1
+	// [VN] Định tuyến API v1: /api/v1
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
 	{
-		// Authentication Routes: /api/v1/auth
+		// [VN] Nhóm route xác thực: /api/v1/auth
 		auth := v1.Group("/auth")
 		{
 			auth.POST("/register", authController.Register)
@@ -63,7 +64,7 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 			auth.POST("/logout-all", authMiddleware, authController.LogoutAll)
 		}
 
-		// User Management Routes: /api/v1/users
+		// [VN] Nhóm route quản lý người dùng: /api/v1/users
 		users := v1.Group("/users")
 		{
 			users.GET("", userController.List)

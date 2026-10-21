@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// [VN] UserService định nghĩa các phương thức xử lý nghiệp vụ quản trị người dùng
 type UserService interface {
 	CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error)
 	GetUserByID(ctx context.Context, idOrPublicID string) (*dto.UserResponse, error)
@@ -28,6 +29,7 @@ type userService struct {
 	profileRepo repositories.ProfileRepository
 }
 
+// [VN] NewUserService khởi tạo UserService với các repository tương ứng
 func NewUserService(
 	userRepo repositories.UserRepository,
 	credRepo repositories.CredentialRepository,
@@ -40,8 +42,9 @@ func NewUserService(
 	}
 }
 
+// [VN] CreateUser tạo mới người dùng kèm thông tin xác thực và hồ sơ cá nhân trong transaction
 func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserResponse, error) {
-	// Kiểm tra trùng email
+	// [VN] Kiểm tra trùng email
 	existing, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err == nil && existing != nil {
 		return nil, common.ErrConflict.
@@ -117,6 +120,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	return dto.ToUserResponse(newUser), nil
 }
 
+// [VN] GetUserByID tìm kiếm và trả về thông tin chi tiết người dùng theo ID hoặc public_id
 func (s *userService) GetUserByID(ctx context.Context, idOrPublicID string) (*dto.UserResponse, error) {
 	user, err := s.userRepo.FindByIDOrPublicID(ctx, idOrPublicID)
 	if err != nil {
@@ -133,6 +137,7 @@ func (s *userService) GetUserByID(ctx context.Context, idOrPublicID string) (*dt
 	return dto.ToUserResponse(user), nil
 }
 
+// [VN] ListUsers lấy danh sách người dùng theo điều kiện tìm kiếm, lọc trạng thái và phân trang cursor
 func (s *userService) ListUsers(ctx context.Context, query *dto.ListUsersQuery) ([]dto.UserResponse, *common.Paging, error) {
 	users, nextCursor, total, err := s.userRepo.List(ctx, query.Cursor, query.Limit, query.Search, query.Status)
 	if err != nil {
@@ -155,6 +160,7 @@ func (s *userService) ListUsers(ctx context.Context, query *dto.ListUsersQuery) 
 	return responses, paging, nil
 }
 
+// [VN] UpdateUser cập nhật thông tin tài khoản và upsert thông tin hồ sơ cá nhân
 func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *dto.UpdateUserRequest) (*dto.UserResponse, error) {
 	user, err := s.userRepo.FindByIDOrPublicID(ctx, idOrPublicID)
 	if err != nil {
@@ -168,7 +174,7 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 			WithTrace(err)
 	}
 
-	// Cập nhật trường thông tin cơ bản
+	// [VN] Cập nhật trường thông tin cơ bản
 	if req.FullName != nil {
 		user.FullName = *req.FullName
 	}
@@ -186,7 +192,7 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 			return err
 		}
 
-		// Cập nhật profile nếu có các trường hồ sơ
+		// [VN] Cập nhật profile nếu có các trường hồ sơ
 		hasProfileUpdate := req.DateOfBirth != nil || req.Gender != nil || req.PhoneNumber != nil ||
 			req.Address != nil || req.Preferences != nil
 
@@ -234,6 +240,7 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 	return dto.ToUserResponse(user), nil
 }
 
+// [VN] DeleteUser xóa người dùng (soft-delete đánh dấu status=deleted hoặc xóa cứng)
 func (s *userService) DeleteUser(ctx context.Context, idOrPublicID string, hard bool) error {
 	user, err := s.userRepo.FindByIDOrPublicID(ctx, idOrPublicID)
 	if err != nil {

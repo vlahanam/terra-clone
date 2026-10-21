@@ -1,25 +1,25 @@
-# Development / Local Dockerfile with hot-reloading via Air
+# [VN] Dockerfile môi trường Dev / Local hỗ trợ live-reload bằng Air
 FROM golang:1.26-alpine
 
 WORKDIR /app
 
 ENV GOPROXY=https://proxy.golang.org,direct
 
-# Install tools for development and Air live-reloading
+# [VN] Cài đặt các công cụ phát triển và hỗ trợ Air
 RUN apk add --no-cache git bash curl
 
-# Install Air for hot-reloading
+# [VN] Cài đặt Air phục vụ hot-reloading
 RUN go install github.com/air-verse/air@latest
 
-# Install golang-migrate CLI with postgres support
+# [VN] Cài đặt công cụ golang-migrate CLI hỗ trợ PostgreSQL
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.0 \
     && ln -sf /go/bin/migrate /usr/local/bin/migrate
 
-# Pre-download dependencies to leverage Docker layer caching
+# [VN] Tải trước dependencies để tối ưu Docker layer cache
 COPY go.mod go.sum* ./
 RUN go mod download
 
-# Copy application source code
+# [VN] Sao chép toàn bộ mã nguồn ứng dụng
 COPY . .
 
 EXPOSE 8080

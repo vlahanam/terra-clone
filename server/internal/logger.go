@@ -20,9 +20,7 @@ const (
 )
 
 // [VN] InitLogger khởi tạo slog ghi log ứng dụng ra app.log và access log ra access.log với cơ chế xoay vòng tự động.
-//
-// [VN] Trả về accessWriter cho router và hàm cleanup() đóng toàn bộ log rollers khi shutdown.
-// [VN] Cần gọi qua defer để tránh mất log
+// [VN] Trả về accessWriter cho router và hàm cleanup() đóng toàn bộ log rollers khi shutdown (cần gọi qua defer để tránh mất log).
 func InitLogger(c *AppConfig) (io.Writer, func() error, error) {
 	fileRoller, err := lumberjack.NewRoller(
 		logFilePath,

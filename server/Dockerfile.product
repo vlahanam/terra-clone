@@ -1,4 +1,4 @@
-# Stage 1: Build production binary
+# [VN] Giai đoạn 1: Biên dịch nhị phân Production
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
@@ -7,7 +7,7 @@ ENV GOPROXY=https://proxy.golang.org,direct
 
 RUN apk add --no-cache git ca-certificates tzdata
 
-# Install golang-migrate CLI with postgres support
+# [VN] Cài đặt công cụ migration CLI
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.0
 
 COPY go.mod go.sum* ./
@@ -15,10 +15,10 @@ RUN go mod download
 
 COPY . .
 
-# Build stripped and trimmed production binary
+# [VN] Build file nhị phân tối giản, loại bỏ symbol table và đường dẫn máy build (-trimpath)
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /app/bin/server ./cmd/main.go
 
-# Stage 2: Minimal hardened runtime image
+# [VN] Giai đoạn 2: Runtime image tối thiểu và bảo mật (Hardened Minimal Alpine)
 FROM alpine:3.24
 
 WORKDIR /app

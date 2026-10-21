@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// [VN] TestGenerateAndValidateToken kiểm tra tính chính xác của việc sinh và xác thực token JWT
 func TestGenerateAndValidateToken(t *testing.T) {
 	secret := "test_secret_key_1234567890_min_32_bytes!"
 	userID := uuid.New()
@@ -22,7 +23,7 @@ func TestGenerateAndValidateToken(t *testing.T) {
 		t.Fatalf("Expected non-empty tokens, got access=%s, refresh=%s", pair.AccessToken, pair.RefreshToken)
 	}
 
-	// Validate Access Token
+	// [VN] Kiểm tra xác thực Access Token
 	accessClaims, err := ValidateToken(secret, pair.AccessToken, TokenTypeAccess)
 	if err != nil {
 		t.Fatalf("ValidateToken for access failed: %v", err)
@@ -31,7 +32,7 @@ func TestGenerateAndValidateToken(t *testing.T) {
 		t.Errorf("Access claims mismatch: %+v", accessClaims)
 	}
 
-	// Validate Refresh Token
+	// [VN] Kiểm tra xác thực Refresh Token
 	refreshClaims, err := ValidateToken(secret, pair.RefreshToken, TokenTypeRefresh)
 	if err != nil {
 		t.Fatalf("ValidateToken for refresh failed: %v", err)
@@ -40,17 +41,18 @@ func TestGenerateAndValidateToken(t *testing.T) {
 		t.Errorf("Refresh claims mismatch: %+v", refreshClaims)
 	}
 
-	// Validate wrong token type
+	// [VN] Kiểm tra lỗi khi dùng sai loại token
 	if _, err := ValidateToken(secret, pair.AccessToken, TokenTypeRefresh); err == nil {
 		t.Errorf("Expected error when validating access token as refresh token, got nil")
 	}
 
-	// Validate wrong secret
+	// [VN] Kiểm tra lỗi khi dùng sai secret key
 	if _, err := ValidateToken("wrong_secret_key", pair.AccessToken, TokenTypeAccess); err == nil {
 		t.Errorf("Expected error when validating with wrong secret, got nil")
 	}
 }
 
+// [VN] TestGeneratePublicID kiểm tra định dạng của public ID được sinh ra
 func TestGeneratePublicID(t *testing.T) {
 	id := GeneratePublicID("usr")
 	if len(id) < 5 || id[:4] != "usr_" {

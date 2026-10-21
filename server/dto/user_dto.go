@@ -7,6 +7,7 @@ import (
 	"github.com/vlahanam/terra-clone/models"
 )
 
+// [VN] CreateUserRequest định nghĩa dữ liệu đầu vào khi tạo mới người dùng
 type CreateUserRequest struct {
 	Email       string                 `json:"email" binding:"required,email"`
 	Password    string                 `json:"password" binding:"required,min=8"`
@@ -20,6 +21,7 @@ type CreateUserRequest struct {
 	Preferences map[string]interface{} `json:"preferences,omitempty"`
 }
 
+// [VN] UpdateUserRequest định nghĩa dữ liệu cập nhật thông tin người dùng
 type UpdateUserRequest struct {
 	FullName    *string                `json:"full_name,omitempty"`
 	AvatarURL   *string                `json:"avatar_url,omitempty"`
@@ -31,6 +33,7 @@ type UpdateUserRequest struct {
 	Preferences map[string]interface{} `json:"preferences,omitempty"`
 }
 
+// [VN] ListUsersQuery định nghĩa tham số truy vấn tìm kiếm và phân trang cursor cho danh sách người dùng
 type ListUsersQuery struct {
 	Cursor string `form:"cursor"`
 	Limit  int    `form:"limit"`
@@ -38,6 +41,7 @@ type ListUsersQuery struct {
 	Status string `form:"status"`
 }
 
+// [VN] UserProfileResponse định nghĩa dữ liệu hồ sơ cá nhân trả về cho client
 type UserProfileResponse struct {
 	DateOfBirth *string                `json:"date_of_birth,omitempty"`
 	Gender      *string                `json:"gender,omitempty"`
@@ -46,6 +50,7 @@ type UserProfileResponse struct {
 	Preferences map[string]interface{} `json:"preferences,omitempty"`
 }
 
+// [VN] UserResponse định nghĩa thông tin người dùng hoàn chỉnh trả về cho client
 type UserResponse struct {
 	ID        uuid.UUID            `json:"id"`
 	PublicID  string               `json:"public_id"`
@@ -58,6 +63,7 @@ type UserResponse struct {
 	UpdatedAt time.Time            `json:"updated_at"`
 }
 
+// [VN] ToUserResponse chuyển đổi entity models.User sang DTO UserResponse
 func ToUserResponse(user *models.User) *UserResponse {
 	if user == nil {
 		return nil

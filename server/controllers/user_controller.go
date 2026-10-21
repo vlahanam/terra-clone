@@ -10,14 +10,17 @@ import (
 	"github.com/vlahanam/terra-clone/services"
 )
 
+// [VN] UserController điều phối các yêu cầu HTTP liên quan đến quản trị người dùng
 type UserController struct {
 	userService services.UserService
 }
 
+// [VN] NewUserController khởi tạo UserController với UserService
 func NewUserController(userService services.UserService) *UserController {
 	return &UserController{userService: userService}
 }
 
+// [VN] Create xử lý yêu cầu tạo người dùng mới
 func (ctrl *UserController) Create(c *gin.Context) {
 	var req dto.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -39,6 +42,7 @@ func (ctrl *UserController) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, common.ResponseData(res))
 }
 
+// [VN] GetByID lấy thông tin người dùng theo ID hoặc public_id
 func (ctrl *UserController) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -58,6 +62,7 @@ func (ctrl *UserController) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, common.ResponseData(res))
 }
 
+// [VN] List trả về danh sách người dùng có phân trang cursor và tìm kiếm
 func (ctrl *UserController) List(c *gin.Context) {
 	var query dto.ListUsersQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
@@ -79,6 +84,7 @@ func (ctrl *UserController) List(c *gin.Context) {
 	c.JSON(http.StatusOK, common.SuccessResponse(users, paging, nil))
 }
 
+// [VN] Update cập nhật thông tin người dùng và hồ sơ cá nhân
 func (ctrl *UserController) Update(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -107,6 +113,7 @@ func (ctrl *UserController) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, common.ResponseData(res))
 }
 
+// [VN] Delete thực hiện soft-delete hoặc hard-delete người dùng
 func (ctrl *UserController) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -126,6 +133,6 @@ func (ctrl *UserController) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, common.ResponseData(gin.H{
-		"message": "Đã xóa người dùng thành công",
+		"message": "User deleted successfully",
 	}))
 }

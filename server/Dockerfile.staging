@@ -1,4 +1,4 @@
-# Stage 1: Build application binary
+# [VN] Giai đoạn 1: Biên dịch mã nguồn ứng dụng Golang
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
@@ -7,7 +7,7 @@ ENV GOPROXY=https://proxy.golang.org,direct
 
 RUN apk add --no-cache git ca-certificates tzdata
 
-# Install golang-migrate CLI with postgres support
+# [VN] Cài đặt công cụ migration CLI
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.0
 
 COPY go.mod go.sum* ./
@@ -17,7 +17,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/bin/server ./cmd/main.go
 
-# Stage 2: Runtime image
+# [VN] Giai đoạn 2: Runtime image tối giản cho Staging
 FROM alpine:3.24
 
 WORKDIR /app

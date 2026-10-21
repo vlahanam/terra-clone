@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// [VN] UserRepository định nghĩa interface thao tác dữ liệu với bảng users
 type UserRepository interface {
 	Create(ctx context.Context, tx *gorm.DB, user *models.User) error
 	FindByID(ctx context.Context, id uuid.UUID) (*models.User, error)
@@ -25,14 +26,17 @@ type userRepository struct {
 	db *gorm.DB
 }
 
+// [VN] NewUserRepository khởi tạo UserRepository
 func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
 }
 
+// [VN] GetDB trả về con trỏ kết nối gorm.DB cơ sở
 func (r *userRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
+// [VN] getDB hỗ trợ tái sử dụng database transaction nếu tx được truyền vào
 func (r *userRepository) getDB(tx *gorm.DB) *gorm.DB {
 	if tx != nil {
 		return tx
@@ -40,10 +44,12 @@ func (r *userRepository) getDB(tx *gorm.DB) *gorm.DB {
 	return r.db
 }
 
+// [VN] Create tạo mới người dùng trong cơ sở dữ liệu
 func (r *userRepository) Create(ctx context.Context, tx *gorm.DB, user *models.User) error {
 	return r.getDB(tx).WithContext(ctx).Create(user).Error
 }
 
+// [VN] FindByID tìm kiếm người dùng theo khóa chính UUID
 func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).
@@ -57,6 +63,7 @@ func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.Us
 	return &user, nil
 }
 
+// [VN] FindByPublicID tìm kiếm người dùng theo mã định danh công khai
 func (r *userRepository) FindByPublicID(ctx context.Context, publicID string) (*models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).
@@ -70,6 +77,7 @@ func (r *userRepository) FindByPublicID(ctx context.Context, publicID string) (*
 	return &user, nil
 }
 
+// [VN] FindByEmail tìm kiếm người dùng theo địa chỉ email không phân biệt hoa thường
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).
@@ -83,6 +91,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 	return &user, nil
 }
 
+// [VN] FindByIDOrPublicID tự động phát hiện tham số là UUID hay public_id để tìm kiếm
 func (r *userRepository) FindByIDOrPublicID(ctx context.Context, idOrPublicID string) (*models.User, error) {
 	parsedUUID, err := uuid.Parse(idOrPublicID)
 	if err == nil {
@@ -91,6 +100,7 @@ func (r *userRepository) FindByIDOrPublicID(ctx context.Context, idOrPublicID st
 	return r.FindByPublicID(ctx, idOrPublicID)
 }
 
+// [VN] List lấy danh sách người dùng hỗ trợ phân trang Cursor và tìm kiếm đa trường
 func (r *userRepository) List(ctx context.Context, cursor string, limit int, search string, status string) ([]models.User, string, int64, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
@@ -101,7 +111,7 @@ func (r *userRepository) List(ctx context.Context, cursor string, limit int, sea
 	if status != "" {
 		query = query.Where("status = ?", status)
 	} else {
-		// Mặc định không hiển thị tài khoản đã xóa nếu không chỉ định rõ
+		// [VN] Mặc định không hiển thị tài khoản đã xóa nếu không chỉ định rõ
 		query = query.Where("status != ?", models.UserStatusDeleted)
 	}
 
@@ -136,10 +146,12 @@ func (r *userRepository) List(ctx context.Context, cursor string, limit int, sea
 	return users, nextCursor, total, nil
 }
 
+// [VN] Update cập nhật thông tin người dùng
 func (r *userRepository) Update(ctx context.Context, tx *gorm.DB, user *models.User) error {
 	return r.getDB(tx).WithContext(ctx).Save(user).Error
 }
 
+// [VN] Delete thực hiện soft-delete hoặc xóa cứng người dùng
 func (r *userRepository) Delete(ctx context.Context, tx *gorm.DB, id uuid.UUID, soft bool) error {
 	if soft {
 		return r.getDB(tx).WithContext(ctx).Model(&models.User{}).

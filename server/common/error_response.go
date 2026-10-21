@@ -10,43 +10,28 @@ import (
 )
 
 type DefaultError struct {
-	// [VN] Mã lỗi logic
+	// [VN] Mã lỗi logic (ví dụ: ERR_NOT_FOUND)
 	IDField string `json:"id,omitempty"`
 
-	// [VN] Mã trạng thái
-	//
-	// [VN] Ví dụ: 404
+	// [VN] Mã trạng thái HTTP (ví dụ: 404)
 	CodeField int `json:"code,omitempty"`
 
-	// [VN] Mô tả trạng thái
-	//
-	// [VN] Ví dụ: Not Found
+	// [VN] Mô tả trạng thái HTTP (ví dụ: Not Found)
 	StatusField string `json:"status,omitempty"`
 
-	// [VN] Request ID
-	//
-	// [VN] Ví dụ: d7ef54b1-ec15-46e6-bccb-524b82c035e6
+	// [VN] Request ID định danh truy vết (ví dụ: d7ef54b1-ec15-46e6-bccb-524b82c035e6)
 	RIDField string `json:"request,omitempty"`
 
-	// [VN] Lý do gây ra lỗi, dùng để trả về cho người dùng
-	//
-	// [VN] ví dụ: Người dùng có ID 1234 không tồn tại
+	// [VN] Lý do gây ra lỗi gửi về cho người dùng (ví dụ: User with ID 1234 does not exist)
 	ReasonField string `json:"reason,omitempty"`
 
-	// [VN] Thông tin debug
-	//
-	// [VN] Không trả về cho người dùng
-	//
-	// [VN] Ví dụ: SQL field "foo" is not a bool.
+	// [VN] Thông tin debug nội bộ không serialize ra client (ví dụ: SQL field foo is not a bool)
 	DebugField string `json:"debug,omitempty"`
 
-	// [VN] Thông báo lỗi
-	//
-	// [VN] Ví dụ: Không tìm thấy tài nguyên
-	// Required: true
+	// [VN] Thông báo lỗi chính (bắt buộc, ví dụ: Requested resource not found)
 	ErrorField string `json:"message"`
 
-	// [VN] Chi tiết lỗi bổ sung
+	// [VN] Chi tiết lỗi bổ sung (ví dụ map các field validation lỗi)
 	DetailsField map[string]interface{} `json:"details,omitempty"`
 
 	err error

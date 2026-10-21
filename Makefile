@@ -10,10 +10,10 @@ help: ## [VN] Hiển thị danh sách các lệnh
 	@echo "================================================="
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# ----------------------------------------------------------------------
-# DEV / LOCAL ENVIRONMENT
-# ----------------------------------------------------------------------
-up: dev-up ## [VN] Khởi chạy môi trường Dev / Local (mặc định)[VN]
+# [VN] ----------------------------------------------------------------------
+# [VN] MÔI TRƯỜNG DEV / LOCAL (DEV / LOCAL ENVIRONMENT)
+# [VN] ----------------------------------------------------------------------
+up: dev-up ## [VN] Khởi chạy môi trường Dev / Local (mặc định)
 down: dev-down ## [VN] Dừng môi trường Dev / Local
 build: dev-build ## [VN] Build lại image Dev / Local
 logs: dev-logs ## [VN] Xem log Dev / Local
@@ -37,9 +37,9 @@ dev-ps: ## [VN] Xem danh sách container Dev / Local
 dev-restart: ## [VN] Khởi động lại các container Dev / Local
 	$(COMPOSE_DEV) restart
 
-# ----------------------------------------------------------------------
-# STAGING ENVIRONMENT
-# ----------------------------------------------------------------------
+# [VN] ----------------------------------------------------------------------
+# [VN] MÔI TRƯỜNG STAGING (STAGING ENVIRONMENT)
+# [VN] ----------------------------------------------------------------------
 staging-up: ## [VN] Khởi chạy môi trường Staging
 	$(COMPOSE_STAGING) up -d
 
@@ -52,9 +52,9 @@ staging-build: ## [VN] Build image môi trường Staging
 staging-logs: ## [VN] Theo dõi log môi trường Staging
 	$(COMPOSE_STAGING) logs -f
 
-# ----------------------------------------------------------------------
-# PRODUCTION ENVIRONMENT
-# ----------------------------------------------------------------------
+# [VN] ----------------------------------------------------------------------
+# [VN] MÔI TRƯỜNG PRODUCTION (PRODUCTION ENVIRONMENT)
+# [VN] ----------------------------------------------------------------------
 prod-up: ## [VN] Khởi chạy môi trường Production
 	$(COMPOSE_PROD) up -d
 
@@ -67,9 +67,9 @@ prod-build: ## [VN] Build image môi trường Production
 prod-logs: ## [VN] Theo dõi log môi trường Production
 	$(COMPOSE_PROD) logs -f
 
-# ----------------------------------------------------------------------
-# UTILITIES / DEBUGGING
-# ----------------------------------------------------------------------
+# [VN] ----------------------------------------------------------------------
+# [VN] TIỆN ÍCH / GỠ LỖI (UTILITIES / DEBUGGING)
+# [VN] ----------------------------------------------------------------------
 server-sh: ## [VN] Mở terminal sh trong container Go Server
 	$(COMPOSE_DEV) exec server sh
 
@@ -87,9 +87,9 @@ db-cli: psql-cli ## [VN] Mở Database CLI (alias cho psql-cli)
 clean: ## [VN] Dừng và xóa toàn bộ container, network, volumes của dự án
 	$(COMPOSE_DEV) down -v --remove-orphans
 
-# ----------------------------------------------------------------------
-# MIGRATION BY GOLANG-MIGRATE V4
-# ----------------------------------------------------------------------
+# [VN] ----------------------------------------------------------------------
+# [VN] QUẢN LÝ MIGRATION BẰNG GOLANG-MIGRATE V4
+# [VN] ----------------------------------------------------------------------
 DB_MIGRATIONS_DIR = migrations
 SERVER_CONTAINER = terra_server_dev
 DB_URL = postgres://terra_user:terra_secret@postgres:5432/terra_db?sslmode=disable
