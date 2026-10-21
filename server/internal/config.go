@@ -17,9 +17,23 @@ func NewConfig() (*config, error) {
 		fmt.Println("[VN] Warning: .env file not found, relying on system environment variables")
 	}
 
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "local"
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		if appEnv == "staging" || appEnv == "production" {
+			return nil, fmt.Errorf("[VN] thiếu cấu hình bắt buộc JWT_SECRET cho môi trường %s", appEnv)
+		}
+		jwtSecret = "terra_dev_jwt_secret_key_2026_very_secure_string_min_32_bytes"
+	}
+
 	appConfig := &AppConfig{
-		AppEnv:   os.Getenv("APP_ENV"),
-		Port:     os.Getenv("PORT"),
+		AppEnv:    appEnv,
+		Port:      os.Getenv("PORT"),
+		JWTSecret: jwtSecret,
 	}
 
 	dbConfig := &DBConfig{

@@ -8,7 +8,8 @@ import (
 func Run() {
 	cf, err := NewConfig()
 	if err != nil {
-		slog.Error("[VN] Lỗi khởi tạo cấu hình: %v", err)
+		slog.Error("[VN] Lỗi khởi tạo cấu hình", "error", err)
+		return
 	}
 
 	accessWriter, cleanupLogger, err := InitLogger(cf.AppConfig)
@@ -24,13 +25,13 @@ func Run() {
 
 	db, err := cf.DBConfig.ConnectDb()
 	if err != nil {
-		slog.Error("[VN] Lỗi kết nối database: %v", err)
+		slog.Error("[VN] Lỗi kết nối database", "error", err)
+		return
 	}
-	_ = db
 
-	r := SetupRouter(cf.AppConfig, accessWriter)
+	r := SetupRouter(cf.AppConfig, db, accessWriter)
 	port := fmt.Sprintf(":%s", cf.AppConfig.Port)
 	if err := r.Run(port); err != nil {
-		slog.Error("[VN] Server bị dừng đột ngột: %v", err)
+		slog.Error("[VN] Server bị dừng đột ngột", "error", err)
 	}
 }

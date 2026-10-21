@@ -80,6 +80,18 @@ resolver 127.0.0.11 valid=30s ipv6=off;
 3. **API Routing (`/api/*`)**:
    - Chuyển tiếp tới backend server qua biến upstream `$backend_upstream http://server:8080`.
    - Forwarding các header bảo mật và định danh mạng: `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`.
+   - **Danh mục Điểm Cuối Hiện Hữu (Current API Endpoints)**:
+     - `GET  /api/ping`: Kiểm tra kết nối dịch vụ.
+     - `POST /api/v1/auth/register`: Đăng ký tài khoản mới (transaction 3 bảng).
+     - `POST /api/v1/auth/login`: Đăng nhập, cấp JWT tokens, phòng thủ brute-force.
+     - `POST /api/v1/auth/refresh`: Làm mới Access Token bằng Refresh Token.
+     - `GET  /api/v1/auth/me`: Lấy thông tin tài khoản hiện tại (yêu cầu Bearer Token).
+     - `POST /api/v1/auth/logout-all`: Thu hồi toàn bộ phiên qua tăng `token_version` (yêu cầu Bearer Token).
+     - `GET  /api/v1/users`: Danh sách người dùng hỗ trợ phân trang Cursor `UUIDv7`, lọc trạng thái và tìm kiếm.
+     - `POST /api/v1/users`: Tạo người dùng mới qua API quản trị kèm hồ sơ chi tiết.
+     - `GET  /api/v1/users/:id`: Lấy thông tin chi tiết người dùng bằng ID (UUIDv7) hoặc `public_id`.
+     - `PATCH /api/v1/users/:id` & `PUT /api/v1/users/:id`: Cập nhật thông tin tài khoản và hồ sơ/preferences.
+     - `DELETE /api/v1/users/:id`: Vô hiệu hóa hoặc xóa người dùng (mặc định soft-delete).
 4. **Frontend Routing (`/*`)**:
    - Chuyển tiếp tới Next.js frontend qua biến upstream `$frontend_upstream http://frontend:3000`.
    - Kèm các chỉ thị WebSocket (`Upgrade $http_upgrade`, `Connection "upgrade"`) đảm bảo Hot Module Replacement (HMR) trong môi trường phát triển hoạt động liên tục.

@@ -1,6 +1,7 @@
 package internal
 
 type AppConfig struct {
-	AppEnv   string
-	Port     string
+	AppEnv    string
+	Port      string
+	JWTSecret string
 }

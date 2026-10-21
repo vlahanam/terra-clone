@@ -34,6 +34,7 @@ services:
     environment:
       APP_ENV: production
       PORT: ${SERVER_PORT:-8080}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in production}
       DB_HOST: ${DB_HOST:-postgres}
       DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME:-terra_db}

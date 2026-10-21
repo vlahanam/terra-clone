@@ -35,7 +35,7 @@ terra-clone/
 ├── server/                           # Backend Application Server (Golang 1.26+)
 │   ├── .air.toml                     # Cấu hình live-reloading với Air
 │   ├── .dockerignore                 # Loại trừ file khi build image Go Server
-│   ├── .env.example                  # Mẫu cấu hình môi trường backend
+│   ├── .env.example                  # Mẫu cấu hình môi trường backend (kèm JWT_SECRET)
 │   ├── .env                          # Cấu hình môi trường backend đang sử dụng
 │   ├── Dockerfile                    # Dockerfile Dev (Tích hợp Air & golang-migrate CLI)
 │   ├── Dockerfile.staging            # Dockerfile Staging (Multi-stage build)
@@ -44,29 +44,48 @@ terra-clone/
 │   ├── go.sum                        # Checksum hash dependencies
 │   ├── cmd/
 │   │   └── main.go                   # Điểm khởi chạy chương trình (Entry point)
-│   ├── common/                       # Khối dùng chung (Responses, Errors, Pagination)
+│   ├── common/                       # Khối dùng chung (Responses, Errors, Pagination, JWT, ID)
 │   │   ├── error_response.go         # Chuẩn hóa lỗi API, StackTrace & Error carrier
+│   │   ├── id.go                     # Hàm sinh public_id ngẫu nhiên an toàn
+│   │   ├── jwt.go                    # Phát sinh và xác thực JWT token pair (Access/Refresh)
+│   │   ├── jwt_test.go               # Kiểm thử đơn vị cho JWT và ID generator
 │   │   ├── pagination.go             # Cấu trúc phân trang Cursor (Paging)
 │   │   └── success_response.go       # Chuẩn hóa phản hồi thành công
 │   ├── controllers/                  # Tầng tiếp nhận HTTP Request & trả về Response
+│   │   ├── auth_controller.go        # Controller xử lý Đăng ký, Đăng nhập, Refresh, Logout-All, Me
+│   │   └── user_controller.go        # Controller xử lý CRUD User, phân trang, lọc và tìm kiếm
+│   ├── dto/                          # Khối Data Transfer Objects (Request/Response Binding)
+│   │   ├── auth_dto.go               # DTO RegisterRequest, LoginRequest, RefreshTokenRequest, AuthResponse
+│   │   └── user_dto.go               # DTO CreateUserRequest, UpdateUserRequest, ListUsersQuery, UserResponse
 │   ├── internal/                     # Thư viện và logic vận hành nội bộ server
-│   │   ├── app.go                    # Định nghĩa AppConfig struct
-│   │   ├── config.go                 # Trình nạp và xác thực biến môi trường
+│   │   ├── app.go                    # Định nghĩa AppConfig struct (kèm JWTSecret)
+│   │   ├── config.go                 # Trình nạp và xác thực biến môi trường (Fail-Fast)
 │   │   ├── logger.go                 # Hệ thống Structured Logging (slog + lumberjack)
 │   │   ├── postgresql.go             # Kết nối GORM & kiểm tra Ping connection pool
-│   │   ├── router.go                 # Khởi tạo Gin Engine, gắn middleware & routes
+│   │   ├── router.go                 # Khởi tạo Gin Engine, gắn middleware & API v1 routes
 │   │   └── run.go                    # Điều phối vòng đời và dọn dẹp tài nguyên
 │   ├── logs/                         # Thư mục chứa log ứng dụng (tự xoay vòng và nén .gz)
 │   │   ├── access.log                # Access log các request HTTP
 │   │   └── app.log                   # Application structured log (slog JSON)
 │   ├── middleware/                   # Tầng middleware xử lý HTTP
-│   │   └── logger.go                 # Custom Gin Access Logger format chi tiết
+│   │   ├── auth.go                   # Middleware RequireAuth kiểm tra Bearer JWT & token_version
+│   │   ├── logger.go                 # Custom Gin Access Logger format chi tiết
+│   │   └── request_id.go             # Middleware sinh và gán X-Request-ID cho mỗi request
 │   ├── migrations/                   # Các script SQL migration có đánh version
 │   │   ├── 000001_users_table.up.sql / .down.sql
 │   │   ├── 000002_user_credentials_table.up.sql / .down.sql
 │   │   └── 000003_user_profiles_table.up.sql / .down.sql
-│   ├── repositories/                 # Tầng tương tác cơ sở dữ liệu (GORM)
+│   ├── models/                       # Entity models tương tác cơ sở dữ liệu qua GORM
+│   │   ├── credential.go             # Entity UserCredentials (password_hash, token_version, lock)
+│   │   ├── profile.go                # Entity UserProfile (phone, address, JSONMap preferences)
+│   │   └── user.go                   # Entity User (id UUIDv7, public_id, email, status)
+│   ├── repositories/                 # Tầng tương tác cơ sở dữ liệu (GORM Data Access)
+│   │   ├── credential_repository.go  # Quản lý credentials, đếm failed login, tăng token version
+│   │   ├── profile_repository.go     # Quản lý profile người dùng và preferences JSONB
+│   │   └── user_repository.go        # CRUD User, tìm kiếm email/public_id, phân trang cursor
 │   └── services/                     # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
+│       ├── auth_service.go           # Nghiệp vụ Đăng ký (transaction), Đăng nhập, Refresh, Logout-All
+│       └── user_service.go           # Nghiệp vụ CRUD người dùng, phân trang cursor, soft-delete
 └── frontend/                         # Thư mục mã nguồn Frontend Web (Next.js)
     └── .dockerignore                 # File ignore cho Docker frontend
 ```
@@ -157,12 +176,36 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 - Struct [`Paging`](file:///home/wsl-admin/projects/terra-clone/server/common/pagination.go#L3-L7):
   - Áp dụng kỹ thuật **Cursor-based Pagination** (thay thế cho Offset-based truyền thống), tối ưu hóa hiệu năng truy vấn trên bảng dữ liệu lớn hàng chục triệu bản ghi kết hợp với khóa chính `UUIDv7`.
 
+#### 4. [`jwt.go`](file:///home/wsl-admin/projects/terra-clone/server/common/jwt.go)
+- Quản lý vòng đời JWT Token:
+  - Hàm `GenerateTokenPair(secret, userID, publicID, email, tokenVersion)`: Sinh đồng thời Access Token (15 phút) và Refresh Token (7 ngày) theo chuẩn HMAC-SHA256.
+  - Hàm `ValidateToken(secret, tokenString, expectedType)`: Kiểm tra tính hợp lệ của chữ ký, thời hạn sống và loại token (`access` hoặc `refresh`).
+  - Struct `UserClaims`: Đóng gói `user_id`, `public_id`, `email`, `token_version`, `token_type` và các trường tiêu chuẩn của `jwt.RegisteredClaims`.
+
+#### 5. [`id.go`](file:///home/wsl-admin/projects/terra-clone/server/common/id.go)
+- Hàm `GeneratePublicID(prefix)`: Tạo chuỗi định danh ngẫu nhiên mã hóa hex kết hợp tiền tố gợi nhớ (ví dụ: `usr_46587d36c1764cea`) an toàn về mặt mật mã học (`crypto/rand`).
+
 ---
 
-### 2.4. Tầng Middleware: [`middleware/logger.go`](file:///home/wsl-admin/projects/terra-clone/server/middleware/logger.go)
+### 2.4. Tầng Middleware: [`middleware/`](file:///home/wsl-admin/projects/terra-clone/server/middleware)
+
+#### 1. [`logger.go`](file:///home/wsl-admin/projects/terra-clone/server/middleware/logger.go)
 - Hàm [`Logger(output io.Writer)`](file:///home/wsl-admin/projects/terra-clone/server/middleware/logger.go#L12):
   - Trích xuất thông tin truy cập của từng request: Thời gian thực thi (`TimeStamp`), Mã trạng thái có màu sắc trực quan (`StatusCodeColor`), Độ trễ xử lý (`Latency`), Địa chỉ IP máy khách (`ClientIP`), HTTP Method (`MethodColor`), Đường dẫn (`Path`), Thiết bị / Trình duyệt truy cập (`UserAgent`).
   - Ghi vào luồng `accessWriter` đã được cấu hình xoay vòng.
+
+#### 2. [`auth.go`](file:///home/wsl-admin/projects/terra-clone/server/middleware/auth.go)
+- Hàm `RequireAuth(jwtSecret, credRepo)`:
+  - Trích xuất Header `Authorization: Bearer <token>`.
+  - Giải mã và xác thực chữ ký Access Token.
+  - Đối chiếu `token_version` trong claims với CSDL để lập tức từ chối token bị thu hồi khi đổi mật khẩu/đăng xuất tất cả thiết bị.
+  - Thiết lập các thông số `user_id`, `public_id`, `email`, `claims` vào `gin.Context`.
+- Hàm `GetCurrentUserID(c)`: Trích xuất `user_id` (UUID) an toàn từ ngữ cảnh request.
+
+#### 3. [`request_id.go`](file:///home/wsl-admin/projects/terra-clone/server/middleware/request_id.go)
+- Hàm `RequestID()`:
+  - Trích xuất hoặc phát sinh mã `X-Request-ID` độc nhất theo chuẩn `UUIDv7` cho mỗi request HTTP.
+  - Gán vào Header phản hồi và context phục vụ truy vết lỗi end-to-end xuyên suốt hệ thống.
 
 ---
 
@@ -181,3 +224,45 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 3. **[`000003_user_profiles_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000003_user_profiles_table.up.sql)**:
    - Lưu trữ thông tin chi tiết: `date_of_birth`, `gender`, `phone_number`, `address`.
    - Cột `preferences JSONB` lưu cấu hình tùy biến của người dùng, được đánh chỉ mục GIN (`idx_user_profiles_preferences`).
+
+---
+
+### 2.6. Tầng Thực Thể Cơ Sở Dữ Liệu: [`models/`](file:///home/wsl-admin/projects/terra-clone/server/models)
+- [`user.go`](file:///home/wsl-admin/projects/terra-clone/server/models/user.go): Khai báo Entity `User` ánh xạ tới bảng `users`, liên kết quan hệ 1:1 với `UserCredentials` và `UserProfile`.
+- [`credential.go`](file:///home/wsl-admin/projects/terra-clone/server/models/credential.go): Khai báo Entity `UserCredentials` ánh xạ tới `user_credentials`, bổ sung phương thức kiểm tra trạng thái khóa `IsLocked()`.
+- [`profile.go`](file:///home/wsl-admin/projects/terra-clone/server/models/profile.go): Khai báo Entity `UserProfile` và kiểu tùy chỉnh `JSONMap` hiện thực `sql.Scanner` và `driver.Valuer` phục vụ đọc/ghi cột `preferences JSONB`.
+
+---
+
+### 2.7. Tầng Truy Cập Dữ Liệu: [`repositories/`](file:///home/wsl-admin/projects/terra-clone/server/repositories)
+- [`user_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/user_repository.go): Đóng gói toàn bộ câu lệnh truy vấn bảng `users`: `Create`, `FindByID`, `FindByPublicID`, `FindByEmail`, `FindByIDOrPublicID`, `List` (hỗ trợ phân trang con trỏ `UUIDv7`), `Update`, `Delete` (soft-delete hoặc hard-delete).
+- [`credential_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/credential_repository.go): Quản lý bảng `user_credentials`: `Create`, `FindByUserID`, `Update`, `RecordFailedLogin` (tự động khóa 15 phút khi sai liên tiếp 5 lần), `ResetFailedLogin`, `IncrementTokenVersion`.
+- [`profile_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/profile_repository.go): Quản lý bảng `user_profiles`: `Create`, `FindByUserID`, `Update`, `Upsert` (sử dụng mệnh đề `ON CONFLICT DO UPDATE`).
+
+---
+
+### 2.8. Tầng Xử Lý Nghiệp Vụ: [`services/`](file:///home/wsl-admin/projects/terra-clone/server/services)
+- [`auth_service.go`](file:///home/wsl-admin/projects/terra-clone/server/services/auth_service.go):
+  - `Register`: Đăng ký tài khoản trong transaction 3 bảng (`users`, `user_credentials`, `user_profiles`), mã hóa `bcrypt`, phát sinh JWT Token Pair.
+  - `Login`: Xác thực tài khoản, kiểm tra chống brute-force `failed_login_attempts` và `locked_until`, reset trạng thái khi đăng nhập thành công, phát sinh JWT token.
+  - `RefreshToken`: Xác thực refresh token, đối chiếu `token_version` và cấp mới cặp token.
+  - `LogoutAll`: Tăng `token_version` để thu hồi tức thời toàn bộ phiên đăng nhập.
+  - `GetMe`: Lấy thông tin chi tiết người dùng đang đăng nhập.
+- [`user_service.go`](file:///home/wsl-admin/projects/terra-clone/server/services/user_service.go):
+  - `CreateUser`: Tạo mới người dùng kèm hồ sơ cá nhân qua API quản trị.
+  - `GetUserByID`: Tra cứu người dùng theo ID nội bộ hoặc `public_id`.
+  - `ListUsers`: Liệt kê danh sách người dùng với con trỏ `UUIDv7`, tìm kiếm theo email/họ tên và lọc trạng thái.
+  - `UpdateUser`: Cập nhật thông tin tài khoản và upsert thông tin hồ sơ/preferences.
+  - `DeleteUser`: Xóa người dùng (mặc định soft-delete `status = 'deleted'`).
+
+---
+
+### 2.9. Tầng Giao Tiếp Vận Chuyển: [`controllers/`](file:///home/wsl-admin/projects/terra-clone/server/controllers)
+- [`auth_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/auth_controller.go): Điều phối các endpoint `/api/v1/auth/*`: `Register`, `Login`, `RefreshToken`, `LogoutAll`, `GetMe`.
+- [`user_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/user_controller.go): Điều phối các endpoint `/api/v1/users/*`: `Create`, `GetByID`, `List`, `Update`, `Delete`.
+
+---
+
+### 2.10. Tầng Data Transfer Objects: [`dto/`](file:///home/wsl-admin/projects/terra-clone/server/dto)
+- [`auth_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/auth_dto.go): Định nghĩa cấu trúc binding JSON cho luồng xác thực (`RegisterRequest`, `LoginRequest`, `RefreshTokenRequest`, `AuthResponse`).
+- [`user_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/user_dto.go): Định nghĩa cấu trúc binding và serialization cho quản trị người dùng (`CreateUserRequest`, `UpdateUserRequest`, `ListUsersQuery`, `UserProfileResponse`, `UserResponse`).

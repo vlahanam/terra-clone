@@ -35,6 +35,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-local}
       PORT: ${SERVER_PORT:-8080}
+      JWT_SECRET: ${JWT_SECRET:-terra_dev_jwt_secret_key_2026_very_secure_string_min_32_bytes}
       DB_HOST: ${DB_HOST:-postgres}
       DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME:-terra_db}

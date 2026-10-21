@@ -50,6 +50,7 @@ Hệ thống quản lý biến môi trường theo 2 tầng: Cấp Root (quản 
 | `DB_USER` | `terra_user` | Tên tài khoản quản trị CSDL |
 | `DB_PASSWORD` | `terra_secret` | Mật khẩu truy cập CSDL |
 | `DB_SSLMODE` | `disable` | Chế độ mã hóa kết nối SSL (`disable`, `require`, `verify-full`) |
+| `JWT_SECRET` | *(string 32+ chars)* | Khóa bí mật dùng để ký và xác thực token JWT (HS256) |
 | `NGINX_PORT` | `8088` | Cổng HTTP Nginx Gateway mở ra phía ngoài host |
 | `NGINX_SSL_PORT` | `8443` | Cổng HTTPS Nginx Gateway |
 

@@ -10,9 +10,9 @@ Lộ trình phát triển của dự án **Terra Clone** được chia thành 5 
 ```mermaid
 flowchart TD
     Phase1["<b>Giai Đoạn 1: Nền Tảng Cốt Lõi & Hạ Tầng</b><br/>(Core Infrastructure & Foundation)<br/><i>Trạng thái: ĐÃ HOÀN THÀNH</i>"]
-    Phase2["<b>Giai Đoạn 2: Xác Thực & Quản Trị Định Danh</b><br/>(Authentication & IAM)<br/><i>Trạng thái: ĐANG TRIỂN KHAI</i>"]
-    Phase3["<b>Giai Đoạn 3: Hồ Sơ Cá Nhân & Preferences</b><br/>(User Profiles & Dynamic JSONB)<br/><i>Trạng thái: KẾ HOẠCH TIẾP THEO</i>"]
-    Phase4["<b>Giai Đoạn 4: Tích Hợp Frontend Next.js</b><br/>(Web Application & Client Portal)<br/><i>Trạng thái: DỰ KIẾN</i>"]
+    Phase2["<b>Giai Đoạn 2: Xác Thực & Quản Trị Định Danh</b><br/>(Authentication & IAM)<br/><i>Trạng thái: ĐÃ HOÀN THÀNH</i>"]
+    Phase3["<b>Giai Đoạn 3: Hồ Sơ Cá Nhân & Preferences</b><br/>(User Profiles & Dynamic JSONB)<br/><i>Trạng thái: ĐÃ HOÀN THÀNH</i>"]
+    Phase4["<b>Giai Đoạn 4: Tích Hợp Frontend Next.js</b><br/>(Web Application & Client Portal)<br/><i>Trạng thái: KẾ HOẠCH TIẾP THEO</i>"]
     Phase5["<b>Giai Đoạn 5: CI/CD, Giám Sát & Hardening</b><br/>(Production Hardening & Observability)<br/><i>Trạng thái: DỰ KIẾN</i>"]
 
     Phase1 --> Phase2
@@ -53,45 +53,48 @@ flowchart TD
 
 ---
 
-### 🟡 Giai Đoạn 2: Phân Hệ Xác Thực & Định Danh Người Dùng (Authentication & IAM)
-> **Trạng thái**: 🚀 **ĐANG TRIỂN KHAI (In Progress - Priority 1)**
+### 🟢 Giai Đoạn 2: Phân Hệ Xác Thực & Định Danh Người Dùng (Authentication & IAM)
+> **Trạng thái**: ✅ **ĐÃ HOÀN THÀNH (Baseline Achieved)**
 
-- [ ] **Data Access Layer (Repositories)**:
-  - Hiện thực `UserRepository` (Tìm kiếm theo ID/Email, tạo mới tài khoản).
-  - Hiện thực `CredentialRepository` (Lưu hash mật khẩu, cập nhật số lần thử sai, cập nhật `token_version`).
-- [ ] **Business Logic Layer (Services)**:
-  - Hiện thực hàm băm mật khẩu bảo mật sử dụng thuật toán `Argon2id` hoặc `Bcrypt` với salt ngẫu nhiên.
-  - Logic đăng ký tài khoản (Register Flow) kết hợp transaction đảm bảo tạo đồng bộ bản ghi `users` và `user_credentials`.
+- [x] **Data Access Layer (Repositories)**:
+  - Hiện thực `UserRepository` (Tìm kiếm theo ID/Email/PublicID, tạo mới, phân trang Cursor, cập nhật, xóa).
+  - Hiện thực `CredentialRepository` (Lưu hash mật khẩu, cập nhật số lần thử sai, khóa tạm thời tài khoản, cập nhật `token_version`).
+  - Hiện thực `ProfileRepository` (Lưu hồ sơ và preferences JSONB với upsert on conflict).
+- [x] **Business Logic Layer (Services)**:
+  - Hiện thực hàm băm mật khẩu bảo mật sử dụng thuật toán `Bcrypt` với salt ngẫu nhiên.
+  - Logic đăng ký tài khoản (Register Flow) kết hợp transaction đảm bảo tạo đồng bộ 3 bản ghi `users`, `user_credentials` và `user_profiles`.
   - Logic đăng nhập (Login Flow) kiểm tra số lần thử sai liên tiếp (`failed_login_attempts`), tự động kích hoạt `locked_until` nếu vượt quá 5 lần thử.
   - Cấp phát cặp JWT token: Access Token (thời hạn 15 phút) và Refresh Token (thời hạn 7 ngày).
-- [ ] **HTTP Transport Layer (Controllers & Middleware)**:
+  - Logic Refresh Token đối chiếu `token_version` và cấp cặp token mới.
+- [x] **HTTP Transport Layer (Controllers & Middleware)**:
   - Khởi tạo controller `AuthController`:
     - `POST /api/v1/auth/register`: Đăng ký tài khoản mới.
     - `POST /api/v1/auth/login`: Xác thực và trả JWT token.
     - `POST /api/v1/auth/refresh`: Cấp mới Access Token bằng Refresh Token.
-    - `POST /api/v1/auth/logout`: Thu hồi token hiện tại.
+    - `GET /api/v1/auth/me`: Xem thông tin tài khoản hiện tại.
     - `POST /api/v1/auth/logout-all`: Tăng `token_version` để đăng xuất khỏi toàn bộ thiết bị.
-  - Middleware `AuthMiddleware`: Trích xuất Header `Authorization: Bearer <token>`, giải mã claims và xác thực với `token_version` trong CSDL.
+  - Middleware `RequireAuth`: Trích xuất Header `Authorization: Bearer <token>`, giải mã claims và xác thực với `token_version` trong CSDL.
+  - Middleware `RequestID`: Tự động gán `X-Request-ID` độc nhất theo chuẩn UUIDv7.
 - [ ] **Tích Hợp OAuth 2.0 (Google Login)**:
-  - Endpoint `GET /api/v1/auth/google/callback`: Tiếp nhận authorization code, xác thực với Google Identity Server và tự động ánh xạ vào bảng `user_credentials`.
+  - Kế hoạch giai đoạn sau.
 
 ---
 
-### 🔵 Giai Đoạn 3: Quản Lý Hồ Sơ & Cấu Hình Cá Nhân Hóa (User Profiles & Preferences)
-> **Trạng thái**: 📋 **KẾ HOẠCH TIẾP THEO (Planned)**
+### 🟢 Giai Đoạn 3: Quản Lý Hồ Sơ & Cấu Hình Cá Nhân Hóa (User Profiles & Preferences)
+> **Trạng thái**: ✅ **ĐÃ HOÀN THÀNH (Baseline Achieved)**
 
-- [ ] **CRUD Hồ Sơ Người Dùng**:
-  - `GET /api/v1/users/me`: Trích xuất thông tin hồ sơ của tài khoản đang đăng nhập.
-  - `PATCH /api/v1/users/me`: Cập nhật ngày sinh, giới tính, số điện thoại, địa chỉ.
-- [ ] **Tải Lên Ảnh Đại Diện (Avatar Upload Pipeline)**:
+- [x] **CRUD Người Dùng & Hồ Sơ (User CRUD APIs)**:
+  - `POST /api/v1/users`: Tạo người dùng mới qua API quản trị kèm mật khẩu và hồ sơ chi tiết.
+  - `GET /api/v1/users/:id`: Trích xuất thông tin chi tiết bằng ID (UUIDv7) hoặc `public_id`.
+  - `GET /api/v1/users`: Danh sách người dùng hỗ trợ phân trang Cursor hiệu năng cao (`id < cursor ORDER BY id DESC LIMIT 20`), lọc theo trạng thái (`status`) và tìm kiếm (`search`).
+  - `PATCH /api/v1/users/:id` & `PUT /api/v1/users/:id`: Cập nhật thông tin cơ bản và thông tin hồ sơ/preferences.
+  - `DELETE /api/v1/users/:id`: Xóa người dùng (hỗ trợ soft-delete `status = 'deleted'` và hard-delete).
+- [x] **Khai Thác Cấu Hình Động (JSONB Preferences)**:
+  - Lưu trữ và cập nhật cấu hình cá nhân hóa tùy biến (`preferences`) trong PostgreSQL JSONB.
+  - Tối ưu hóa truy vấn JSON tốc độ cao bằng chỉ mục GIN (`idx_user_profiles_preferences`).
+- [ ] **Tải Lên Ảnh Đại Diện (Avatar Upload Pipeline - Kế hoạch giai đoạn sau)**:
   - Tích hợp giải pháp lưu trữ đối tượng (S3-compatible: AWS S3 hoặc MinIO container).
   - Cung cấp API sinh Presigned URL an toàn để client tải ảnh trực tiếp lên storage.
-- [ ] **Khai Thác Cấu Hình Động (JSONB Preferences)**:
-  - Viết Service hỗ trợ cập nhật một phần cấu hình JSONB (`jsonb_set` trong PostgreSQL) cho các cài đặt: Giao diện (Dark/Light mode), Tần suất thông báo, Ngôn ngữ hiển thị.
-  - Tối ưu hóa truy vấn tìm kiếm người dùng theo điều kiện cấu hình sử dụng toán tử JSONB `@>`.
-- [ ] **Phân Quyền & Quản Trị Hệ Thống (Admin APIs)**:
-  - Quản lý danh sách người dùng với phân trang Cursor.
-  - Khóa tài khoản cưỡng chế (chuyển trạng thái `status = 'deleted'` hoặc `'inactive'`).
 
 ---
 

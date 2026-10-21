@@ -95,18 +95,39 @@ terra-clone/
 │   │   └── run.go                # Khởi động ứng dụng và quản lý lifecycle cleanup
 │   ├── common/                   # Cấu trúc dữ liệu và chuẩn phản hồi dùng chung
 │   │   ├── error_response.go     # Chuẩn hóa lỗi API, Error Carriers, StackTrace
-│   │   ├── success_response.go   # Chuẩn hóa phản hồi thành công (Data, Paging, Extra)
-│   │   └── pagination.go         # Cấu trúc phân trang Cursor (Paging)
+│   │   ├── id.go                 # Hàm sinh public_id ngẫu nhiên an toàn
+│   │   ├── jwt.go                # Phát sinh và xác thực token JWT (Access/Refresh)
+│   │   ├── jwt_test.go           # Kiểm thử đơn vị JWT và sinh public_id
+│   │   ├── pagination.go         # Cấu trúc phân trang Cursor (Paging)
+│   │   └── success_response.go   # Chuẩn hóa phản hồi thành công (Data, Paging, Extra)
 │   ├── controllers/              # Tầng tiếp nhận HTTP Request & trả về Response
+│   │   ├── auth_controller.go    # Controller Đăng ký, Đăng nhập, Refresh, Logout-All, Me
+│   │   └── user_controller.go    # Controller CRUD User, phân trang, lọc và tìm kiếm
+│   ├── dto/                      # Khối Data Transfer Objects (Request/Response Binding)
+│   │   ├── auth_dto.go           # DTO Register, Login, Refresh, AuthResponse
+│   │   └── user_dto.go           # DTO CreateUser, UpdateUser, ListUsers, UserResponse
+│   ├── models/                   # Entity models tương tác cơ sở dữ liệu qua GORM
+│   │   ├── credential.go         # Entity UserCredentials (hash, token_version, lock)
+│   │   ├── profile.go            # Entity UserProfile (hồ sơ, preferences JSONMap)
+│   │   └── user.go               # Entity User (id UUIDv7, public_id, email, status)
 │   ├── services/                 # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
+│   │   ├── auth_service.go       # Logic Auth, transaction 3 bảng, chống brute-force
+│   │   └── user_service.go       # Logic CRUD User, cursor pagination, soft-delete
 │   ├── repositories/             # Tầng tương tác truy vấn dữ liệu (Data Access)
-│   ├── middleware/               # Tầng middleware xử lý HTTP (Auth, CORS, Logging,...)
+│   │   ├── credential_repository.go # Truy vấn credentials, đếm sai pass, tăng token version
+│   │   ├── profile_repository.go # Truy vấn hồ sơ người dùng, upsert JSONB
+│   │   └── user_repository.go    # Truy vấn users, tìm kiếm, phân trang cursor UUIDv7
+│   ├── middleware/               # Tầng middleware xử lý HTTP
+│   │   ├── auth.go               # Middleware RequireAuth kiểm tra JWT & token_version
+│   │   ├── logger.go             # Custom Gin Access Logger format chi tiết
+│   │   └── request_id.go         # Middleware sinh và gán X-Request-ID cho mỗi request
 │   ├── migrations/               # Các tệp SQL migration có đánh số thứ tự
 │   │   ├── 000001_users_table.up.sql / .down.sql
 │   │   ├── 000002_user_credentials_table.up.sql / .down.sql
 │   │   └── 000003_user_profiles_table.up.sql / .down.sql
 │   └── logs/
-│       └── app.log               # File log của server (tự xoay vòng và nén .gz)
+│       ├── access.log            # Access log chi tiết theo thời gian thực
+│       └── app.log               # Structured log JSON của ứng dụng (slog)
 └── frontend/
     └── .dockerignore             # Docker ignore cho thư mục frontend
 ```
@@ -132,6 +153,22 @@ Mặc định các cổng host được định nghĩa trong file `.env` cấp r
 - `GET /ping`: Chuyển tiếp tới Go Server (`http://server:8080/ping`) trả về `{"message":"pong"}` phục vụ kiểm tra liveness.
 - `ALL /api/*`: Reverse proxy tới Go Server (`http://server:8080`), tự động chuyển tiếp các header `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`.
 - `ALL /*`: Reverse proxy tới Frontend service (`http://frontend:3000`), kèm theo cấu hình WebSocket (`Upgrade`, `Connection "upgrade"`) hỗ trợ Hot Reload cho Next.js / Vite.
+
+### 3. Danh mục Điểm Cuối API (API Endpoints Matrix)
+
+| Phân hệ | Phương thức | Endpoint | Mô tả chức năng | Yêu cầu Auth |
+| :--- | :--- | :--- | :--- | :--- |
+| **Hạ tầng** | `GET` | `/ping` hoặc `/api/ping` | Kiểm tra tình trạng hoạt động của Go Engine | Public |
+| **Xác thực** | `POST` | `/api/v1/auth/register` | Đăng ký tài khoản (tạo đồng bộ users, credentials, profile) | Public |
+| **Xác thực** | `POST` | `/api/v1/auth/login` | Đăng nhập, cấp JWT tokens (Access/Refresh), phòng brute-force | Public |
+| **Xác thực** | `POST` | `/api/v1/auth/refresh` | Cấp mới Access Token bằng Refresh Token | Public |
+| **Xác thực** | `GET` | `/api/v1/auth/me` | Lấy thông tin tài khoản đang đăng nhập | Bearer JWT |
+| **Xác thực** | `POST` | `/api/v1/auth/logout-all` | Thu hồi toàn bộ phiên đăng nhập (tăng `token_version`) | Bearer JWT |
+| **Người dùng** | `GET` | `/api/v1/users` | Danh sách người dùng (Cursor Paging `UUIDv7`, Search, Status) | Public |
+| **Người dùng** | `POST` | `/api/v1/users` | Tạo mới người dùng kèm hồ sơ cá nhân qua API | Public |
+| **Người dùng** | `GET` | `/api/v1/users/:id` | Xem chi tiết người dùng theo ID (`UUIDv7`) hoặc `public_id` | Public |
+| **Người dùng** | `PATCH` / `PUT` | `/api/v1/users/:id` | Cập nhật thông tin tài khoản và hồ sơ/preferences | Public |
+| **Người dùng** | `DELETE` | `/api/v1/users/:id` | Xóa người dùng (mặc định soft-delete `status = 'deleted'`) | Public |
 
 ---
 
