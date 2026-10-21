@@ -53,6 +53,7 @@ flowchart TD
 
     Nginx -->|"Path: / (Proxy Pass & WS Upgrade)"| NextJS
     Nginx -->|"Path: /api/* (Proxy Pass)"| GinRouter
+    Nginx -->|"Path: /ping (Proxy Pass)"| GinRouter
     Nginx -->|"Path: /healthz"| Nginx
 
     RepoLayer -->|"GORM DSN / TCP Connection Pool"| Postgres
@@ -74,10 +75,12 @@ resolver 127.0.0.11 valid=30s ipv6=off;
 ### 2.2. Chiến lược Định tuyến (Routing Policy)
 1. **Health Check Endpoint (`GET /healthz`)**:
    - Trả về `200 "healthy\n"` tức thời mà không ghi access log, phục vụ Load Balancer kiểm tra liveness.
-2. **API Routing (`/api/*`)**:
+2. **Ping / Liveness Endpoint (`GET /ping` & `GET /api/ping`)**:
+   - Chuyển tiếp tới backend server qua biến upstream `$backend_upstream http://server:8080`, trả về `{"message": "pong"}`.
+3. **API Routing (`/api/*`)**:
    - Chuyển tiếp tới backend server qua biến upstream `$backend_upstream http://server:8080`.
    - Forwarding các header bảo mật và định danh mạng: `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`.
-3. **Frontend Routing (`/*`)**:
+4. **Frontend Routing (`/*`)**:
    - Chuyển tiếp tới Next.js frontend qua biến upstream `$frontend_upstream http://frontend:3000`.
    - Kèm các chỉ thị WebSocket (`Upgrade $http_upgrade`, `Connection "upgrade"`) đảm bảo Hot Module Replacement (HMR) trong môi trường phát triển hoạt động liên tục.
 

@@ -27,7 +27,7 @@ Mọi yêu cầu phát triển tính năng mới, tái cấu trúc mã nguồn (
 
 ```mermaid
 flowchart TD
-    Step1["<b>Bước 1: Lập Kế Hoạch (Planning)</b><br/>Khởi tạo plan chi tiết trong <code>plans/&lt;feature&gt;.md</code>"]
+    Step1["<b>Bước 1: Lập Kế Hoạch (Planning)</b><br/>Tạo folder <code>plans/YYYYMMDD-HHMMSS-&lt;task&gt;/plan.md</code>"]
     Step2["<b>Bước 2: Nắm Bắt Kiến Trúc & Convention</b><br/>Đọc và phân tích toàn bộ tài liệu trong <code>docs/</code>"]
     Step3["<b>Bước 3: Triển Khai Mã Nguồn (Implementation)</b><br/>Hiện thực code theo phân tầng Clean Layered Architecture"]
     Step4["<b>Bước 4: Cập Nhật Tài Liệu & Đóng Task (Gating)</b><br/>Đồng bộ <code>docs/</code> và <code>README.md</code> trước khi kết thúc"]
@@ -38,8 +38,20 @@ flowchart TD
 ```
 
 ### 🔴 Bước 1: Khởi Tạo Kế Hoạch Chi Tiết Trong `plans/`
-- **Yêu cầu**: Trước khi chỉnh sửa hoặc tạo bất kỳ dòng code nào, Agent **bắt buộc** phải tạo một file kế hoạch thực thi chi tiết tại thư mục [`plans/`](file:///home/wsl-admin/projects/terra-clone/plans) (ví dụ: `plans/<ten-tinh-nang>.md`).
-- **Cấu trúc bắt buộc của file Plan**:
+- **Yêu cầu & Quy chuẩn cấu trúc thư mục Plan**:
+  Trước khi chỉnh sửa hoặc tạo bất kỳ dòng code nào, Agent **bắt buộc** phải tạo một thư mục riêng biệt cho kế hoạch tại [`plans/`](file:///home/wsl-admin/projects/terra-clone/plans) với quy tắc đặt tên theo thời gian khởi tạo và nội dung tóm tắt:
+  $$\text{plans/YYYYMMDD-HHMMSS-<noi-dung-plan-tom-tat>/}$$
+  *(Ví dụ: `plans/20261021-155656-fix-ping-endpoint/`)*
+
+  Cấu trúc tệp tin bên trong thư mục plan tuân thủ nghiêm ngặt 2 trường hợp:
+  - **Trường hợp 1 - Kế hoạch đơn mục tiêu (Single Objective)**:
+    - Nếu plan chỉ giải quyết một mục tiêu duy nhất: Bên trong thư mục mới tạo **chỉ có duy nhất 1 file** mang tên [`plan.md`](file:///home/wsl-admin/projects/terra-clone/plans) (ví dụ: `plans/20261021-155656-fix-ping-endpoint/plan.md`).
+  - **Trường hợp 2 - Kế hoạch phức hợp gồm nhiều plan con (Multiple Sub-plans)**:
+    - Nếu plan có nhiều hạng mục/mục tiêu con cần hoàn thành tuần tự hoặc độc lập:
+      1. Tạo ra **nhiều file plan con** với tên gợi nhớ và nội dung tóm tắt cho từng phần (ví dụ: `01-migration-schema.md`, `02-auth-service.md`, v.v.).
+      2. Đồng thời, **bắt buộc phải có một file kế hoạch tổng hợp** mang tên [`plan.md`](file:///home/wsl-admin/projects/terra-clone/plans) để xâu chuỗi toàn bộ các plan con, theo dõi tổng thể tiến độ và đóng vai trò là nguồn tham chiếu chuẩn cho cả nhiệm vụ.
+
+- **Cấu trúc nội dung bắt buộc của file Plan (`plan.md`)**:
   1. **Mục tiêu & Phạm vi (Objectives & Scope)**: Xác định rõ ràng tính năng cần làm, liên kết với Product Design Requirement (PDR) và Roadmap.
   2. **Đánh giá Kiến trúc & Tác động CSDL (Architecture & Schema Impact)**:
      - Thiết kế Schema (bảng, cột, kiểu dữ liệu, index, migration number).
@@ -103,8 +115,8 @@ flowchart TD
      - Cập nhật trạng thái tiến độ chung của toàn dự án.
   5. [`README.md`](file:///home/wsl-admin/projects/terra-clone/README.md):
      - Cập nhật mục lục, tính năng mới và sơ đồ thư mục dự án tương ứng.
-  6. File Plan trong [`plans/`](file:///home/wsl-admin/projects/terra-clone/plans):
-     - Đánh dấu hoàn thành toàn bộ checklist thực hiện trong file plan.
+  6. Thư mục Plan trong [`plans/`](file:///home/wsl-admin/projects/terra-clone/plans):
+     - Đánh dấu hoàn thành toàn bộ checklist thực hiện trong thư mục `plans/YYYYMMDD-HHMMSS-<task>/plan.md` (và các plan con nếu có).
 
 > [!CAUTION]
 > ### ⛔ ĐIỀU KIỆN TIÊN QUYẾT: KHÔNG KẾT THÚC TASK NẾU CHƯA CẬP NHẬT TÀI LIỆU
@@ -132,7 +144,7 @@ flowchart TD
 
 Trước khi thông báo hoàn tất bất kỳ chức năng nào tới người dùng, Agent phải tự rà soát theo checklist sau:
 
-- [ ] Đã tạo file kế hoạch chi tiết trong `plans/<tinh-nang>.md` ngay từ đầu task.
+- [ ] Đã tạo thư mục theo định dạng `plans/YYYYMMDD-HHMMSS-<task>/` và file `plan.md` (kèm các plan con nếu có) ngay từ đầu task.
 - [ ] Đã đọc và đối chiếu các quy chuẩn trong `docs/design-guidelines.md` và `docs/system-architecture.md`.
 - [ ] Mã nguồn tuân thủ Clean Architecture: Controller $\rightarrow$ Service $\rightarrow$ Repository.
 - [ ] Có migration `.up.sql` và `.down.sql` nếu có thay đổi CSDL; migration chạy trơn tru không lỗi.
@@ -142,4 +154,4 @@ Trước khi thông báo hoàn tất bất kỳ chức năng nào tới người
 - [ ] Đã cập nhật [`docs/deployment-guide.md`](file:///home/wsl-admin/projects/terra-clone/docs/deployment-guide.md) (nếu có thay đổi env/hạ tầng/make commands).
 - [ ] Đã cập nhật tiến độ trong [`docs/project-roadmap.md`](file:///home/wsl-admin/projects/terra-clone/docs/project-roadmap.md).
 - [ ] Đã cập nhật nội dung tương ứng trong [`README.md`](file:///home/wsl-admin/projects/terra-clone/README.md).
-- [ ] Đã tích chọn hoàn thành checklist trong file plan tại `plans/`.
+- [ ] Đã tích chọn hoàn thành checklist trong file `plan.md` tại `plans/YYYYMMDD-HHMMSS-<task>/`.

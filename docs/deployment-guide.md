@@ -115,10 +115,14 @@ curl -i http://localhost:8088/healthz
 
 # 2. Kiểm tra API Server thông qua Gateway
 curl -i http://localhost:8088/api/ping
+# hoặc qua root path:
+curl -i http://localhost:8088/ping
 # Kết quả mong đợi: HTTP/1.1 200 OK -> {"message":"pong"}
 
 # 3. Kiểm tra API Server trực tiếp qua cổng debug nội bộ
 curl -i http://localhost:8090/ping
+# hoặc:
+curl -i http://localhost:8090/api/ping
 # Kết quả mong đợi: HTTP/1.1 200 OK -> {"message":"pong"}
 ```
 

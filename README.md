@@ -129,6 +129,7 @@ Mặc định các cổng host được định nghĩa trong file `.env` cấp r
 ### 2. Quy tắc Điều hướng Nginx (Routing Rules)
 
 - `GET /healthz`: Trả về trạng thái `200 OK` ("healthy\n") để kiểm tra tình trạng sống còn của Nginx Proxy.
+- `GET /ping`: Chuyển tiếp tới Go Server (`http://server:8080/ping`) trả về `{"message":"pong"}` phục vụ kiểm tra liveness.
 - `ALL /api/*`: Reverse proxy tới Go Server (`http://server:8080`), tự động chuyển tiếp các header `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`.
 - `ALL /*`: Reverse proxy tới Frontend service (`http://frontend:3000`), kèm theo cấu hình WebSocket (`Upgrade`, `Connection "upgrade"`) hỗ trợ Hot Reload cho Next.js / Vite.
 
@@ -413,7 +414,7 @@ make help
 Dự án áp dụng quy chuẩn phát triển tự động hóa nghiêm ngặt đối với AI Agent và các kỹ sư phát triển thông qua tệp quy tắc [`AGENTS.md`](file:///home/wsl-admin/projects/terra-clone/AGENTS.md). 
 
 Mọi tính năng hoặc thay đổi hệ thống đều bắt buộc trải qua quy trình **4 bước tuần tự**:
-1. **Lập Kế Hoạch (Planning)**: Bắt buộc khởi tạo file kế hoạch chi tiết trong thư mục [`plans/<feature>.md`](file:///home/wsl-admin/projects/terra-clone/plans) (xác định mục tiêu, thiết kế schema, các bước triển khai, kế hoạch test).
+1. **Lập Kế Hoạch (Planning)**: Bắt buộc khởi tạo thư mục kế hoạch theo định dạng `plans/YYYYMMDD-HHMMSS-<tên-plan>/` chứa tệp [`plan.md`](file:///home/wsl-admin/projects/terra-clone/plans) (nếu một mục tiêu) hoặc các tệp plan con kèm plan tổng hợp `plan.md` (nếu nhiều plan con) trước khi triển khai code.
 2. **Nắm Bắt Kiến Trúc & Convention**: Đọc và đối chiếu toàn bộ tài liệu quy chuẩn trong [`docs/`](file:///home/wsl-admin/projects/terra-clone/docs) ([`design-guidelines.md`](file:///home/wsl-admin/projects/terra-clone/docs/design-guidelines.md), [`system-architecture.md`](file:///home/wsl-admin/projects/terra-clone/docs/system-architecture.md), [`codebase-summary.md`](file:///home/wsl-admin/projects/terra-clone/docs/codebase-summary.md),...).
 3. **Triển Khai Mã Nguồn**: Thực thi code theo đúng plan, tuân thủ Clean Layered Architecture (`Controller -> Service -> Repository`), xử lý lỗi bằng `common.DefaultError`, migration chuẩn `golang-migrate`.
 4. **Đồng Bộ Tài Liệu & Cổng Đóng Task (Mandatory Gate)**: Cập nhật tài liệu tương ứng trong `docs/` (`codebase-summary.md`, `system-architecture.md`, `deployment-guide.md`, `project-roadmap.md`) và `README.md`. **Tuyệt đối không được phép kết thúc task nếu chưa hoàn thành bước này.**

@@ -15,7 +15,7 @@ terra-clone/
 ├── docker-compose.staging.yml        # Cấu hình container cho Staging
 ├── docker-compose.product.yml        # Cấu hình container cho Production
 ├── Makefile                          # Danh mục lệnh CLI tự động hóa
-├── plans/                            # Kế hoạch chi tiết từng chức năng trước khi code
+├── plans/                            # Thư mục kế hoạch (cấu trúc YYYYMMDD-HHMMSS-<task>/ chứa plan.md)
 ├── docs/                             # Tài liệu kiến trúc và hướng dẫn kỹ thuật
 │   ├── codebase-summary.md           # [Tài liệu hiện tại] Bóc tách toàn bộ mã nguồn
 │   ├── deployment-guide.md           # Cẩm nang triển khai đa môi trường
@@ -113,7 +113,7 @@ terra-clone/
   - Tự động chuyển Gin sang chế độ `ReleaseMode` khi ở môi trường Staging/Production.
   - Khởi tạo `gin.New()` thuần túy.
   - Gắn middleware ghi access log [`middleware.Logger(accessWriter)`](file:///home/wsl-admin/projects/terra-clone/server/middleware/logger.go#L12) và [`gin.Recovery()`](file:///home/wsl-admin/projects/terra-clone/server/internal/router.go#L17) ngăn sập tiến trình khi có panic.
-  - Định nghĩa endpoint kiểm tra sức khỏe cơ sở `GET /ping` trả về `{"message": "pong"}`.
+  - Định nghĩa endpoint kiểm tra sức khỏe cơ sở `GET /ping` và `GET /api/ping` trả về `{"message": "pong"}`.
 
 #### 6. [`run.go`](file:///home/wsl-admin/projects/terra-clone/server/internal/run.go)
 - Hàm [`Run()`](file:///home/wsl-admin/projects/terra-clone/server/internal/run.go#L8):

@@ -1,0 +1,8 @@
+name: ENV LOCAL
+variables:
+  - name: PORT
+    value: "8088"
+    description: ""
+  - name: DOMAIN
+    value: http://localhost:{{PORT}}
+    description: ""
