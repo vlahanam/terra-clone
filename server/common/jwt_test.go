@@ -23,7 +23,6 @@ func TestGenerateAndValidateToken(t *testing.T) {
 		t.Fatalf("Expected non-empty tokens, got access=%s, refresh=%s", pair.AccessToken, pair.RefreshToken)
 	}
 
-	// [VN] Kiểm tra xác thực Access Token
 	accessClaims, err := ValidateToken(secret, pair.AccessToken, TokenTypeAccess)
 	if err != nil {
 		t.Fatalf("ValidateToken for access failed: %v", err)
@@ -32,7 +31,6 @@ func TestGenerateAndValidateToken(t *testing.T) {
 		t.Errorf("Access claims mismatch: %+v", accessClaims)
 	}
 
-	// [VN] Kiểm tra xác thực Refresh Token
 	refreshClaims, err := ValidateToken(secret, pair.RefreshToken, TokenTypeRefresh)
 	if err != nil {
 		t.Fatalf("ValidateToken for refresh failed: %v", err)
@@ -41,12 +39,10 @@ func TestGenerateAndValidateToken(t *testing.T) {
 		t.Errorf("Refresh claims mismatch: %+v", refreshClaims)
 	}
 
-	// [VN] Kiểm tra lỗi khi dùng sai loại token
 	if _, err := ValidateToken(secret, pair.AccessToken, TokenTypeRefresh); err == nil {
 		t.Errorf("Expected error when validating access token as refresh token, got nil")
 	}
 
-	// [VN] Kiểm tra lỗi khi dùng sai secret key
 	if _, err := ValidateToken("wrong_secret_key", pair.AccessToken, TokenTypeAccess); err == nil {
 		t.Errorf("Expected error when validating with wrong secret, got nil")
 	}

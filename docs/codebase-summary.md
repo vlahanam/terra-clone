@@ -228,6 +228,7 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 ---
 
 ### 2.6. Tầng Thực Thể Cơ Sở Dữ Liệu: [`models/`](file:///home/wsl-admin/projects/terra-clone/server/models)
+- Toàn bộ các model tuân thủ quy chuẩn tích hợp cùng `golang-migrate`: Struct tag GORM chỉ định nghĩa ánh xạ cột `gorm:"column:<ten_cot>"` (kèm `primaryKey` cho khóa chính và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL dư thừa của GORM AutoMigrate (`type:`, `not null`, `default:`, `unique`, `autoCreateTime`, `autoUpdateTime`).
 - [`user.go`](file:///home/wsl-admin/projects/terra-clone/server/models/user.go): Khai báo Entity `User` ánh xạ tới bảng `users`, liên kết quan hệ 1:1 với `UserCredentials` và `UserProfile`.
 - [`credential.go`](file:///home/wsl-admin/projects/terra-clone/server/models/credential.go): Khai báo Entity `UserCredentials` ánh xạ tới `user_credentials`, bổ sung phương thức kiểm tra trạng thái khóa `IsLocked()`.
 - [`profile.go`](file:///home/wsl-admin/projects/terra-clone/server/models/profile.go): Khai báo Entity `UserProfile` và kiểu tùy chỉnh `JSONMap` hiện thực `sql.Scanner` và `driver.Valuer` phục vụ đọc/ghi cột `preferences JSONB`.
@@ -270,7 +271,9 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 ---
 
 ### 2.11. Quy Chuẩn Chú Thích & Thông Điệp (Language & Comment Conventions)
-- **Code Comments**: Mọi dòng chú thích trong mã nguồn (Golang `//`, `/* */`, SQL `--`, YAML `#`, Dockerfile `#`, Makefile `#`, Shell Script `#`) bắt buộc phải có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt.
+- **Code Comments**:
+  - **Phạm vi bắt buộc**: (1) Comment hàm (docstring mô tả trách nhiệm, tham số, kết quả); (2) Comment các đoạn code khó hiểu (thuật toán phức tạp, transaction, edge cases, workaround). Tránh comment rườm rà ở những dòng code hiển nhiên.
+  - **Định dạng**: Mọi chú thích mã nguồn bắt buộc có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt.
 - **Messages**: Tất cả các loại thông điệp (messages) trong hệ thống bắt buộc viết bằng Tiếng Anh (English):
   - Log messages trong `slog` (ví dụ: `slog.Info("server started successfully", ...)`).
   - Error messages (`ErrorField`, `ReasonField` trong `common.DefaultError`, chuỗi trong `errors.New`, `fmt.Errorf`).

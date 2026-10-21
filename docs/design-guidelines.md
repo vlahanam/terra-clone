@@ -45,7 +45,7 @@ Hệ thống phải xác thực cấu hình và kiểm tra kết nối với cá
 - **Struct Tags**:
   - Tag JSON: Sử dụng `snake_case` (ví dụ: `json:"full_name"`, `json:"created_at,omitempty"`).
   - Tag Form binding: `form:"cursor"`.
-  - Tag GORM: `gorm:"column:full_name;type:varchar(100);not null"`.
+  - Tag GORM: Do hệ thống sử dụng `golang-migrate` để quản lý schema migration CSDL độc lập và không dùng GORM `AutoMigrate`, các model GORM chỉ cần khai báo ánh xạ cột `gorm:"column:ten_cot"` (kèm `primaryKey` khi khóa chính không mang tên mặc định `id`, và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL như `type:`, `not null`, `default:`, `unique:`. Ví dụ: `gorm:"column:full_name"`.
 
 ### 2.2. Quy Tắc Xử Lý Lỗi (Error Handling Guidelines)
 1. **Không nuốt lỗi**: Tuyệt đối không gán `_ = err` khi gọi các thao tác có khả năng sinh lỗi nghiêm trọng.
@@ -66,33 +66,51 @@ Hệ thống phải xác thực cấu hình và kiểm tra kết nối với cá
 
 ### 2.3. Quy Chuẩn Chú Thích (Code Comments) & Thông Điệp (Messages)
 
-Nhằm đảm bảo sự nhất quán tuyệt đối giữa mã nguồn và tài liệu trong toàn bộ hệ sinh thái dự án:
+Nhằm đảm bảo sự cân bằng giữa tính dễ hiểu, khả năng bảo trì và tránh gây nhiễu mã nguồn:
 
-#### 1. Quy chuẩn Chú thích (Code Comments):
-- **Bắt buộc tiền tố `[VN]`**: Mọi dòng chú thích trong mã nguồn (Golang `//`, `/* */`, SQL `--`, YAML `#`, Dockerfile `#`, Makefile `#`, Shell Script `#`) **BẮT BUỘC** phải có tiền tố `[VN]` ngay sau ký hiệu chú thích.
+#### 1. Phạm vi bắt buộc viết Chú thích (When to Comment):
+- **Comment hàm (Functions / Methods / Constructors)**:
+  - Bắt buộc viết chú thích (docstring) cho toàn bộ các hàm, phương thức, constructor.
+  - Chú thích phải nêu rõ: chức năng của hàm, trách nhiệm xử lý, ý nghĩa các tham số đầu vào và kết quả trả về.
+- **Comment các đoạn code khó hiểu (Complex / Non-trivial Logic)**:
+  - Bắt buộc giải thích lý do và cách thức xử lý tại các khối code phức tạp: thuật toán đặc thù, database transaction liên quan nhiều bảng, regex pattern, biểu thức điều kiện phức tạp, các xử lý biên (edge cases) hoặc workaround kỹ thuật.
+- **Tránh comment dư thừa (Avoid Redundant Comments)**:
+  - Tuyệt đối không viết comment vào các dòng code hiển nhiên, tự giải thích (self-explanatory) như khai báo biến đơn giản, `return err`, tăng biến đếm, hoặc các getter/setter tầm thường.
+
+#### 2. Quy chuẩn Định dạng Chú thích (Code Comment Format):
+- **Bắt buộc tiền tố `[VN]`**: Mọi dòng chú thích khi viết trong mã nguồn (Golang `//`, `/* */`, SQL `--`, YAML `#`, Dockerfile `#`, Makefile `#`, Shell Script `#`) **BẮT BUỘC** phải có tiền tố `[VN]` ngay sau ký hiệu chú thích.
 - Chú thích được viết bằng tiếng Việt rõ nghĩa, mô tả mục đích, nghiệp vụ hoặc lý do kỹ thuật.
 - **Ví dụ đúng (Do)**:
   ```go
-  // [VN] Khởi tạo kết nối PostgreSQL với cấu hình Connection Pool
-  func ConnectDb(cfg *AppConfig) (*gorm.DB, error) {
-      // [VN] Kiểm tra ping CSDL theo nguyên tắc Fail-Fast
-      if err := sqlDB.Ping(); err != nil {
-          return nil, err
+  // [VN] ConnectDb thực hiện kết nối tới database và kiểm tra ping theo nguyên tắc Fail-Fast
+  func (c *DBConfig) ConnectDb() (*gorm.DB, error) {
+      db, err := gorm.Open(postgres.Open(c.DSN()), &gorm.Config{})
+      if err != nil {
+          return nil, fmt.Errorf("failed to open database connection: %w", err)
       }
+
+      sqlDB, err := db.DB()
+      if err != nil {
+          return nil, fmt.Errorf("failed to get sql.DB instance: %w", err)
+      }
+
+      // [VN] Kiểm tra kết nối thực tế tới CSDL để đảm bảo fail-fast ngay khi khởi động
+      if err := sqlDB.Ping(); err != nil {
+          return nil, fmt.Errorf("failed to ping database: %w", err)
+      }
+
       return db, nil
   }
-  ```
-  ```sql
-  -- [VN] Tạo bảng lưu trữ thông tin người dùng với UUIDv7
-  CREATE TABLE IF NOT EXISTS users ( ... );
   ```
 - **Ví dụ sai (Don't)**:
   ```go
   // Connect to database (Sai vì thiếu tiền tố [VN])
   // Khởi tạo database (Sai vì thiếu tiền tố [VN])
+  // [VN] Trả về db và nil (Sai vì comment dòng code hiển nhiên, dư thừa)
+  return db, nil
   ```
 
-#### 2. Quy chuẩn Thông điệp (Messages):
+#### 3. Quy chuẩn Thông điệp (Messages):
 - **Bắt buộc viết bằng Tiếng Anh (English)**: Toàn bộ thông điệp trong hệ thống **BẮT BUỘC 100% bằng Tiếng Anh**. Bao gồm:
   - Thông điệp ghi log qua `slog` (`slog.Info("database connection established")`, `slog.Error("failed to query user", ...)`).
   - Thông báo lỗi API (`ErrorField` trong `common.DefaultError`, ví dụ: `"Requested resource not found"`).
@@ -192,6 +210,14 @@ Khi có lỗi, API trả về cấu trúc lỗi chi tiết theo [`common.Default
   - `DROP TABLE IF EXISTS ... CASCADE;`
   - `CREATE INDEX IF NOT EXISTS ...`
 - Thêm chú thích cột bằng lệnh `COMMENT ON COLUMN` để tự động tài liệu hóa lược đồ.
+
+### 4.4. Quy Chuẩn Ánh Xạ Entity Model (GORM & Golang-Migrate)
+- Vì toàn bộ cấu trúc bảng, kiểu dữ liệu, giá trị mặc định (`DEFAULT`), ràng buộc toàn vẹn (`NOT NULL`, `UNIQUE`, `REFERENCES`) đều do `golang-migrate` quản lý độc lập qua SQL scripts, các struct Entity trong `server/models/` **chỉ đóng vai trò là Data Mapper** cho GORM.
+- **Quy tắc khai báo struct tag `gorm`**:
+  - Chỉ định danh cột tương ứng: `gorm:"column:<ten_cot>"`.
+  - Khóa chính: Khai báo `primaryKey` khi cột khóa chính không dùng tên mặc định `id` (ví dụ: `UserID uuid.UUID `gorm:"column:user_id;primaryKey"``).
+  - Quan hệ: Sử dụng `foreignKey` và `references` để hỗ trợ cơ chế nạp sẵn quan hệ `Preload()`.
+  - **CẤM**: Không khai báo các tag DDL dư thừa của GORM AutoMigrate như `type:...`, `not null`, `default:...`, `unique`, `autoCreateTime`, `autoUpdateTime`.
 
 ---
 

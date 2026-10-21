@@ -331,9 +331,16 @@ Các hằng số lỗi chuẩn tích hợp sẵn:
 
 ### 4. Quy Chuẩn Chú Thích (Code Comments) & Thông Điệp (Messages)
 
-- **Code Comments**: Mọi dòng chú thích trong mã nguồn (Go `//`, `/* */`, SQL `--`, YAML/Dockerfile/Shell `#`) bắt buộc phải có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt rõ ràng, súc tích (ví dụ: `// [VN] Khởi tạo kết nối cơ sở dữ liệu`).
+- **Code Comments**: 
+  - **Phạm vi bắt buộc**: (1) **Comment hàm**: Chú thích (docstring) cho toàn bộ các hàm, phương thức và constructor, giải thích rõ chức năng, tham số và giá trị trả về; (2) **Comment đoạn code khó hiểu**: Chú thích giải thích các khối logic phức tạp, thuật toán đặc thù, transaction đa bảng, regex, hoặc edge cases. Tránh comment dư thừa ở các dòng code tự giải thích.
+  - **Định dạng**: Mọi dòng chú thích khi viết bắt buộc phải có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt (ví dụ: `// [VN] Khởi tạo kết nối cơ sở dữ liệu`).
 - **Messages**: Toàn bộ thông điệp trong hệ thống (log `slog`, API error `message`, `reason`, native Go errors `errors.New`, `fmt.Errorf`, exception/panic string, git commit messages) bắt buộc 100% bằng **Tiếng Anh (English)**.
 - **Quy tắc phân định**: Tiền tố `[VN]` CHỈ dùng cho code comment, tuyệt đối không đưa `[VN]` vào nội dung các chuỗi message hệ thống hoặc API response.
+
+### 5. Tiêu Chuẩn GORM Model & Database Migration
+
+- Dự án sử dụng `golang-migrate` làm công cụ quản lý schema cơ sở dữ liệu độc lập, không dùng GORM `AutoMigrate`.
+- Toàn bộ struct Entity trong `server/models/` chỉ đóng vai trò Data Mapper: struct tag `gorm` chỉ định nghĩa ánh xạ cột `gorm:"column:<ten_cot>"` (kèm `primaryKey` khi khóa chính không mang tên mặc định `id`, và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL như `type:`, `not null`, `default:`, `unique:`.
 
 ---
 

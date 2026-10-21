@@ -2,11 +2,8 @@ package common
 
 // [VN] successResponse đóng gói cấu trúc phản hồi thành công chuẩn cho tất cả API
 type successResponse struct {
-	// [VN] Dữ liệu trả về chính
 	Data interface{} `json:"data"`
-	// [VN] Thông tin phân trang nếu có
 	Paging interface{} `json:"paging,omitempty"`
-	// [VN] Thông tin bổ sung mở rộng nếu có
 	Extra interface{} `json:"extra,omitempty"`
 }
 

@@ -95,7 +95,11 @@ flowchart TD
   - Lỗi phải được bọc bằng [`common.DefaultError`](file:///home/wsl-admin/projects/terra-clone/server/common/error_response.go) kèm `.WithTrace(err)` để lưu giữ StackTrace phục vụ debug.
   - Sử dụng `slog` có cấu trúc; tuyệt đối không log mật khẩu dạng plain-text, secret tokens hoặc PII nhạy cảm.
 - **Quy chuẩn Chú thích (Code Comments) & Thông điệp (Messages)**:
-  - **Code Comments**: Bắt buộc **mọi** dòng comment trong mã nguồn (Go `//`, `/* */`, SQL `--`, YAML/Dockerfile `#`, Shell script `#`) phải có tiền tố `[VN]` ở đầu. Ví dụ: `// [VN] Khởi tạo kết nối cơ sở dữ liệu`.
+  - **Phạm vi bắt buộc viết Comment**:
+    1. **Comment hàm (Functions / Methods / Constructors)**: Bắt buộc viết chú thích (docstring) cho các hàm, phương thức và constructor, mô tả rõ vai trò, mục đích nghiệp vụ, ý nghĩa tham số đầu vào và giá trị trả về.
+    2. **Comment các đoạn code khó hiểu (Complex Logic)**: Bắt buộc chú thích giải thích cho các khối logic nghiệp vụ phức tạp, thuật toán đặc thù, transaction xử lý nhiều bảng, regex, câu lệnh truy vấn phức tạp, hoặc các xử lý edge cases/workarounds.
+    3. **Tránh comment dư thừa**: Không viết comment vào các dòng code hiển nhiên, tự giải thích (self-explanatory).
+  - **Định dạng Comment**: Bắt buộc **mọi** comment khi viết trong mã nguồn (Go `//`, `/* */`, SQL `--`, YAML/Dockerfile `#`, Shell script `#`) phải có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt rõ nghĩa. Ví dụ: `// [VN] Khởi tạo kết nối cơ sở dữ liệu`.
   - **Messages**: Bắt buộc **toàn bộ** thông điệp hệ thống phải được viết bằng **Tiếng Anh (English)**. Bao gồm:
     - Log messages trong `slog` (ví dụ: `slog.Info("server started successfully", ...)`).
     - Error messages (`ErrorField` trong `common.DefaultError`, chuỗi trong `errors.New(...)`, `fmt.Errorf(...)`, `panic(...)`).
@@ -107,6 +111,7 @@ flowchart TD
   - Mọi thay đổi bảng phải tạo cặp tệp `{number}_{name}.up.sql` và `{number}_{name}.down.sql` trong [`server/migrations/`](file:///home/wsl-admin/projects/terra-clone/server/migrations).
   - Khóa chính luôn dùng kiểu `UUID` mặc định `uuidv7()`.
   - Mọi bảng có đủ `created_at` và `updated_at` kiểu `TIMESTAMPTZ`.
+  - Schema CSDL do `golang-migrate` quản lý độc lập; các struct Entity trong `server/models/` chỉ cần tag `gorm:"column:<ten_cot>"` (kèm `primaryKey` cho khóa chính và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL dư thừa của GORM AutoMigrate (`type:`, `not null`, `default:`, `unique`, `autoCreateTime`, `autoUpdateTime`).
 
 ### 🔴 Bước 4: Đồng Bộ Tài Liệu & Cổng Đóng Task Bắt Buộc (Mandatory Documentation Gate)
 - **Yêu cầu**: Sau khi hoàn thiện mã nguồn và kiểm thử xác minh tính năng thành công, Agent **BẮT BUỘC** phải cập nhật toàn bộ các file tài liệu tương ứng:
@@ -147,8 +152,8 @@ flowchart TD
    - Tất cả API trả về kết quả thành công phải bao bọc trong `common.SuccessResponse(c, statusCode, data, paging, extra)`.
    - Tất cả lỗi phải dùng `common.DefaultError` hoặc dẫn xuất của nó để đảm bảo tính nhất quán trên toàn hệ sinh thái.
 4. **Quy Chuẩn Ngôn Ngữ Chú Thích & Thông Điệp (Comment & Message Policy)**:
-   - Tất cả các comment trong code phải có prefix `[VN]` ở đầu.
-   - Tất cả các message (logs, errors, reasons, HTTP responses, console prints, git commits) phải viết bằng Tiếng Anh.
+   - Comment code tập trung vào 2 đối tượng chính: (1) Comment hàm; (2) Comment các đoạn code khó hiểu. Mọi comment bắt buộc có prefix `[VN]` ở đầu và viết bằng tiếng Việt.
+   - Tất cả các message (logs, errors, reasons, HTTP responses, console prints, git commits) bắt buộc viết bằng Tiếng Anh.
 
 ---
 
@@ -159,7 +164,7 @@ Trước khi thông báo hoàn tất bất kỳ chức năng nào tới người
 - [ ] Đã tạo thư mục theo định dạng `plans/YYYYMMDD-HHMMSS-<task>/` và file `plan.md` (kèm các plan con nếu có) ngay từ đầu task.
 - [ ] Đã đọc và đối chiếu các quy chuẩn trong `docs/design-guidelines.md` và `docs/system-architecture.md`.
 - [ ] Mã nguồn tuân thủ Clean Architecture: Controller $\rightarrow$ Service $\rightarrow$ Repository.
-- [ ] Tuân thủ quy chuẩn chú thích & thông điệp: Toàn bộ code comment có tiền tố `[VN]` ở đầu; toàn bộ messages (log, error, reason, response) viết bằng Tiếng Anh.
+- [ ] Tuân thủ quy chuẩn chú thích & thông điệp: Viết comment hàm và comment đoạn code khó hiểu kèm tiền tố `[VN]`; toàn bộ messages (log, error, reason, response) viết bằng Tiếng Anh.
 - [ ] Có migration `.up.sql` và `.down.sql` nếu có thay đổi CSDL; migration chạy trơn tru không lỗi.
 - [ ] Đã xử lý lỗi chuẩn `common.DefaultError` với đầy đủ context và không nuốt lỗi.
 - [ ] Đã cập nhật đầy đủ [`docs/codebase-summary.md`](file:///home/wsl-admin/projects/terra-clone/docs/codebase-summary.md).

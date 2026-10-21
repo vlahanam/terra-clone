@@ -51,15 +51,15 @@ func (j *JSONMap) Scan(value interface{}) error {
 
 // [VN] UserProfile là entity đại diện cho bảng user_profiles lưu thông tin mở rộng của người dùng
 type UserProfile struct {
-	UserID uuid.UUID `gorm:"column:user_id;type:uuid;primaryKey" json:"user_id"`
-	DateOfBirth *string `gorm:"column:date_of_birth;type:date" json:"date_of_birth,omitempty"`
-	Gender *string `gorm:"column:gender;type:varchar(20)" json:"gender,omitempty"`
-	PhoneNumber *string `gorm:"column:phone_number;type:varchar(20)" json:"phone_number,omitempty"`
-	Address *string `gorm:"column:address;type:text" json:"address,omitempty"`
-	Preferences JSONMap `gorm:"column:preferences;type:jsonb" json:"preferences"`
-	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime" json:"created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
-	User *User `gorm:"foreignKey:UserID;references:ID" json:"-"`
+	UserID      uuid.UUID `gorm:"column:user_id;primaryKey" json:"user_id"`
+	DateOfBirth *string   `gorm:"column:date_of_birth" json:"date_of_birth,omitempty"`
+	Gender      *string   `gorm:"column:gender" json:"gender,omitempty"`
+	PhoneNumber *string   `gorm:"column:phone_number" json:"phone_number,omitempty"`
+	Address     *string   `gorm:"column:address" json:"address,omitempty"`
+	Preferences JSONMap   `gorm:"column:preferences" json:"preferences"`
+	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
+	User        *User     `gorm:"foreignKey:UserID;references:ID" json:"-"`
 }
 
 // [VN] TableName chỉ định tên bảng CSDL tương ứng với model UserProfile
