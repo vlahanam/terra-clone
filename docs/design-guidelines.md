@@ -140,7 +140,7 @@ Khi có lỗi, API trả về cấu trúc lỗi chi tiết theo [`common.Default
   ```
 
 ### 4.2. Quy Chuẩn Đánh Chỉ Mục (Indexing Rules)
-- B-Tree index: Đặt tên theo cú pháp `idx_{tên_bảng}_{tên_cột}` (ví dụ: `idx_users_email`, `idx_user_credentials_username`).
+- B-Tree index: Đặt tên theo cú pháp `idx_{tên_bảng}_{tên_cột}` (ví dụ: `idx_users_email`, `idx_users_public_id`).
 - GIN index cho JSONB: Đặt tên theo cú pháp `idx_{tên_bảng}_{tên_cột}` chỉ định rõ thuật toán GIN (ví dụ: `idx_user_profiles_preferences ON user_profiles USING gin (preferences)`).
 - Composite index: Sắp xếp cột có tính chọn lọc cao (cardinality) đứng trước (ví dụ: `idx_user_credentials_provider ON user_credentials(auth_provider, provider_user_id)`).
 

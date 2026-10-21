@@ -20,7 +20,7 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
 ## 2. 🎯 Mục tiêu Sản phẩm (Product Goals)
 
 ### 2.1. Mục tiêu Nghiệp vụ (Business Goals)
-1. **Quản lý Định danh & Xác thực Tập trung**: Hỗ trợ xác thực đa phương thức (Email/Password truyền thống, Google OAuth, Social Logins).
+1. **Quản lý Định danh & Xác thực Tập trung**: Hỗ trợ xác thực tập trung bằng Email/Password bảo mật cao (chống brute-force, thu hồi session hàng loạt).
 2. **Cá nhân hóa Trải nghiệm Người dùng**: Cung cấp khả năng lưu trữ và truy vấn cấu hình cá nhân hóa nhanh chóng thông qua định dạng dữ liệu linh hoạt (JSONB).
 3. **Bảo mật Cấp Doanh nghiệp**: Ngăn chặn brute-force tấn công mật khẩu, hỗ trợ cơ chế thu hồi phiên tức thời (Token Invalidation qua `token_version`).
 
@@ -44,15 +44,14 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
 ## 4. 🧩 Yêu cầu Tính năng (Functional Requirements - FR)
 
 ### 4.1. Phân hệ Quản lý Tài khoản & Định danh (Identity & Access Management)
-- **FR-01 (Đăng ký tài khoản)**:
+- **FR-01 (Đăng ký tài khoản & Định danh công khai)**:
   - Cho phép người dùng đăng ký tài khoản với email hợp lệ và mật khẩu bảo mật.
-  - Hỗ trợ lưu trữ khóa chính dưới dạng `UUIDv7` (tự động sắp xếp theo thời gian thực) theo lược đồ bảng [`users`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000001_users_table.up.sql#L1-L9).
+  - Mỗi tài khoản sở hữu một mã `public_id` định danh duy nhất công khai cho người dùng và khóa chính nội bộ `UUIDv7` (tự động sắp xếp theo thời gian thực) theo lược đồ bảng [`users`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000001_users_table.up.sql#L1-L10).
 - **FR-02 (Đăng nhập & Chống dò quét brute-force)**:
-  - Xác thực người dùng bằng username/email và mật khẩu.
-  - Ghi nhận `failed_login_attempts`. Nếu vượt quá ngưỡng cho phép, tự động khóa tài khoản tạm thời qua trường `locked_until` tại bảng [`user_credentials`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql#L9-L10).
-- **FR-03 (Social Login / OAuth)**:
-  - Hỗ trợ liên kết tài khoản với bên thứ ba (Google, Apple, Facebook,...).
-  - Không bắt buộc lưu mật khẩu khi `auth_provider != 'local'`, kiểm soát bằng ràng buộc `CONSTRAINT chk_local_password`.
+  - Xác thực người dùng bằng email và mật khẩu.
+  - Ghi nhận `failed_login_attempts`. Nếu vượt quá ngưỡng cho phép, tự động khóa tài khoản tạm thời qua trường `locked_until` tại bảng [`user_credentials`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql#L8-L10).
+- **FR-03 (Social Login / OAuth - Kế hoạch giai đoạn sau)**:
+  - Dự kiến mở rộng liên kết tài khoản với bên thứ ba (Google, Apple, Facebook,...); trong giai đoạn hiện tại tập trung cốt lõi vào xác thực Email & Password an toàn và chưa triển khai các trường OAuth.
 - **FR-04 (Thu hồi phiên & Đổi mật khẩu an toàn)**:
   - Quản lý phiên qua `token_version`. Khi người dùng đổi mật khẩu hoặc thực hiện "Đăng xuất khỏi tất cả thiết bị", hệ thống tăng giá trị `token_version` để lập tức vô hiệu hóa toàn bộ JWT token cũ.
 
@@ -78,7 +77,7 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
 
 ### 5.1. Hiệu năng & Khả năng chịu tải (Performance & Scalability)
 - **NFR-01 (Throughput & Latency)**: Go server xây dựng trên framework Gin Gonic siêu nhẹ kết hợp bộ đệm kết nối Connection Pool của PostgreSQL, cho phép xử lý đồng thời hàng nghìn RPS với mức tiêu thụ RAM dưới 50MB.
-- **NFR-02 (Database Indexing)**: Toàn bộ các trường định danh và tìm kiếm chính (`users.email`, `user_credentials.username`, `provider_user_id`, `preferences`) đều được đánh chỉ mục B-Tree và GIN tối ưu.
+- **NFR-02 (Database Indexing)**: Toàn bộ các trường định danh và tìm kiếm chính (`users.public_id`, `users.email`, `preferences`) đều được đánh chỉ mục B-Tree và GIN tối ưu.
 
 ### 5.2. Bảo mật & Toàn vẹn Dữ liệu (Security)
 - **NFR-03 (Kiến trúc Hardened Container)**: Image Docker cho Production được tối giản dựa trên Alpine Linux 3.24, loại bỏ toàn bộ compiler/build tools, chạy dưới tài khoản non-root (`UID/GID 10001:10001`), không mở cổng CSDL ra internet.
@@ -97,7 +96,7 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
 | :--- | :--- | :--- | :--- |
 | **FR-01** | Tạo tài khoản, UUIDv7 ID | Go Server / Postgres | [`000001_users_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000001_users_table.up.sql) |
 | **FR-02** | Chống brute-force đăng nhập | Go Auth Service / Postgres | [`000002_user_credentials_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql) |
-| **FR-03** | Hỗ trợ OAuth Social Login | Go Auth Service / Postgres | [`000002_user_credentials_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql) |
+| **FR-03** | Hỗ trợ OAuth Social Login (Kế hoạch) | Go Auth Service / Postgres | Dự kiến giai đoạn sau |
 | **FR-04** | Thu hồi token qua version | Go Middleware & Auth | [`000002_user_credentials_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql) |
 | **FR-05, 06** | Hồ sơ người dùng & JSONB Preferences | Go Server / Postgres | [`000003_user_profiles_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000003_user_profiles_table.up.sql) |
 | **FR-07, 08** | Reverse proxy, Healthcheck & HMR | Nginx Gateway | [`nginx.conf`](file:///home/wsl-admin/projects/terra-clone/nginx/nginx.conf), [`default.conf`](file:///home/wsl-admin/projects/terra-clone/nginx/conf.d/default.conf) |

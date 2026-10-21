@@ -148,7 +148,8 @@ erDiagram
 
     users {
         uuid id PK "UUIDv7"
-        varchar email UK "Email người dùng"
+        varchar public_id UK "Public ID người dùng (hiển thị công khai)"
+        varchar email UK "Email người dùng (dùng đăng nhập)"
         varchar full_name "Họ và tên"
         text avatar_url "Ảnh đại diện"
         varchar status "active, inactive, deleted"
@@ -158,10 +159,7 @@ erDiagram
 
     user_credentials {
         uuid user_id PK,FK "References users(id) ON DELETE CASCADE"
-        varchar username "Tên đăng nhập"
-        varchar password_hash "Mật khẩu mã hóa"
-        varchar auth_provider "local, google, ..."
-        varchar provider_user_id "OAuth Provider User ID"
+        varchar password_hash "Mật khẩu mã hóa (NOT NULL)"
         int token_version "Thu hồi session / refresh token"
         timestamptz last_login_at
         int failed_login_attempts "Chống brute-force"
@@ -182,8 +180,8 @@ erDiagram
     }
 ```
 
-- **`users`**: Chứa thông tin cốt lõi của tài khoản, sử dụng hàm `uuid_generate_v7()` làm khóa chính và đánh index cho cột `email`.
-- **`user_credentials`**: Chứa thông tin bảo mật, xác thực tài khoản; hỗ trợ cả tài khoản `local` lẫn đăng nhập mạng xã hội (OAuth) với ràng buộc `CHECK (auth_provider != 'local' OR (username IS NOT NULL AND password_hash IS NOT NULL))`. Quản lý `token_version` để hủy session và chống brute-force đăng nhập.
+- **`users`**: Chứa thông tin cốt lõi của tài khoản, sử dụng hàm `uuidv7()` làm khóa chính, trường `public_id` định danh công khai hiển thị cho người dùng, và đánh index cho cột `email` phục vụ đăng nhập.
+- **`user_credentials`**: Chứa thông tin bảo mật, xác thực tài khoản; lưu trữ mật khẩu đã được mã hóa (`password_hash NOT NULL`) phục vụ đăng nhập trực tiếp bằng email (từ bảng `users`) và mật khẩu. Quản lý `token_version` để thu hồi phiên/refresh token và các trường chống brute-force đăng nhập (`failed_login_attempts`, `locked_until`).
 - **`user_profiles`**: Lưu thông tin mở rộng của người dùng; sử dụng cột `preferences JSONB` được đánh chỉ mục **GIN** (`idx_user_profiles_preferences`) cho truy vấn hiệu năng cao.
 
 ### 2. Chuỗi kết nối Database Migration (`DB_URL`)

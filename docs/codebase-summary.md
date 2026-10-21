@@ -170,14 +170,14 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 
 1. **[`000001_users_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000001_users_table.up.sql)**:
    - Tạo bảng `users` với khóa chính `id UUID DEFAULT uuidv7()`.
-   - Cột `email` định dạng `VARCHAR(255) UNIQUE` được đánh chỉ mục `idx_users_email`.
+   - Cột `public_id VARCHAR(50) UNIQUE NOT NULL` đóng vai trò định danh công khai hiển thị cho người dùng, được đánh chỉ mục `idx_users_public_id`.
+   - Cột `email` định dạng `VARCHAR(255) UNIQUE` được đánh chỉ mục `idx_users_email` (dùng để đăng nhập).
    - Quản lý trạng thái tài khoản: `status VARCHAR(20) DEFAULT 'active'`.
 2. **[`000002_user_credentials_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql)**:
-   - Lưu trữ thông tin đăng nhập, tách biệt độc lập với bảng hồ sơ cá nhân.
+   - Lưu trữ thông tin xác thực mật khẩu và phiên đăng nhập, tách biệt độc lập với bảng thông tin tài khoản.
    - Liên kết 1:1 với `users(id)` qua khóa ngoại với hành vi `ON DELETE CASCADE`.
-   - Hỗ trợ cả đăng nhập `local` và `OAuth` (Google, v.v.) qua ràng buộc:
-     `CONSTRAINT chk_local_password CHECK (auth_provider != 'local' OR (username IS NOT NULL AND password_hash IS NOT NULL))`
-   - Đánh chỉ mục tìm kiếm `idx_user_credentials_provider` và `idx_user_credentials_username`.
+   - Lưu trữ `password_hash VARCHAR(255) NOT NULL` phục vụ đăng nhập bằng email và mật khẩu (đã tinh giản, loại bỏ các trường OAuth chưa sử dụng ở giai đoạn này).
+   - Quản lý phiên (`token_version`), lịch sử đăng nhập (`last_login_at`) và phòng vệ brute-force (`failed_login_attempts`, `locked_until`).
 3. **[`000003_user_profiles_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000003_user_profiles_table.up.sql)**:
    - Lưu trữ thông tin chi tiết: `date_of_birth`, `gender`, `phone_number`, `address`.
    - Cột `preferences JSONB` lưu cấu hình tùy biến của người dùng, được đánh chỉ mục GIN (`idx_user_profiles_preferences`).

@@ -40,8 +40,8 @@ flowchart TD
 - [x] **Cơ Sở Dữ Liệu & Migrations**:
   - Khởi tạo PostgreSQL 18 trên nền tảng Alpine Linux siêu nhẹ.
   - Thiết kế và phiên bản hóa lược đồ ban đầu bằng `golang-migrate`:
-    - [`000001_users_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000001_users_table.up.sql): Khóa chính UUIDv7, unique email.
-    - [`000002_user_credentials_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql): Hỗ trợ tài khoản nội bộ và Social OAuth, chống brute-force, thu hồi token.
+    - [`000001_users_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000001_users_table.up.sql): Khóa chính UUIDv7, unique email, public_id định danh hiển thị công khai.
+    - [`000002_user_credentials_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql): Hỗ trợ đăng nhập email và password, quản lý session token và phòng thủ brute-force.
     - [`000003_user_profiles_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000003_user_profiles_table.up.sql): Cột `preferences JSONB` đánh chỉ mục GIN.
 - [x] **Chuẩn Hóa Giao Tiếp API**:
   - Chuẩn phản hồi lỗi phân cấp [`common.DefaultError`](file:///home/wsl-admin/projects/terra-clone/server/common/error_response.go) có StackTrace và Request ID.

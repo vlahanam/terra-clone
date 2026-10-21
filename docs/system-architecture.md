@@ -171,7 +171,8 @@ erDiagram
 
     users {
         uuid id PK "UUIDv7 (Tự động sắp xếp thời gian)"
-        varchar email UK "Email độc nhất, có index"
+        varchar public_id UK "Mã định danh công khai hiển thị cho người dùng (Unique Index)"
+        varchar email UK "Email độc nhất, có index (Dùng để đăng nhập)"
         varchar full_name "Họ và tên"
         text avatar_url "Đường dẫn ảnh đại diện"
         varchar status "active, inactive, deleted"
@@ -181,10 +182,7 @@ erDiagram
 
     user_credentials {
         uuid user_id PK,FK "Tham chiếu users(id) ON DELETE CASCADE"
-        varchar username "Tên đăng nhập (Index tìm kiếm)"
-        varchar password_hash "Mật khẩu mã hóa"
-        varchar auth_provider "Phương thức: local, google, ..."
-        varchar provider_user_id "ID từ nhà cung cấp OAuth"
+        varchar password_hash "Mật khẩu mã hóa (NOT NULL)"
         int token_version "Version thu hồi token hàng loạt"
         timestamptz last_login_at "Thời điểm đăng nhập thành công"
         int failed_login_attempts "Đếm số lần đăng nhập sai"
