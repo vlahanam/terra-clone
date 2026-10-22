@@ -46,9 +46,9 @@ terra-clone/
 │   │   └── main.go                   # Điểm khởi chạy chương trình (Entry point)
 │   ├── common/                       # Khối dùng chung (Responses, Errors, Pagination, JWT, ID)
 │   │   ├── error_response.go         # Chuẩn hóa lỗi API, StackTrace & Error carrier
-│   │   ├── id.go                     # Hàm sinh public_id ngẫu nhiên an toàn
+│   │   ├── id.go                     # Hàm sinh public_id và NewUUIDv7
+│   │   ├── id_test.go                # Kiểm thử đơn vị cho NewUUIDv7 và public_id generator
 │   │   ├── jwt.go                    # Phát sinh và xác thực JWT token pair (Access/Refresh)
-│   │   ├── jwt_test.go               # Kiểm thử đơn vị cho JWT và ID generator
 │   │   ├── pagination.go             # Cấu trúc phân trang Cursor (Paging)
 │   │   └── success_response.go       # Chuẩn hóa phản hồi thành công
 │   ├── controllers/                  # Tầng tiếp nhận HTTP Request & trả về Response
@@ -78,7 +78,8 @@ terra-clone/
 │   ├── models/                       # Entity models tương tác cơ sở dữ liệu qua GORM
 │   │   ├── credential.go             # Entity UserCredentials (password_hash, token_version, lock)
 │   │   ├── profile.go                # Entity UserProfile (phone, address, JSONMap preferences)
-│   │   └── user.go                   # Entity User (id UUIDv7, public_id, email, status)
+│   │   ├── user.go                   # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
+│   │   └── user_test.go              # Kiểm thử đơn vị cho hook BeforeCreate của User model
 │   ├── repositories/                 # Tầng tương tác cơ sở dữ liệu (GORM Data Access)
 │   │   ├── credential_repository.go  # Quản lý credentials, đếm failed login, tăng token version
 │   │   ├── profile_repository.go     # Quản lý profile người dùng và preferences JSONB
@@ -184,6 +185,7 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 
 #### 5. [`id.go`](file:///home/wsl-admin/projects/terra-clone/server/common/id.go)
 - Hàm `GeneratePublicID(prefix)`: Tạo chuỗi định danh ngẫu nhiên mã hóa hex kết hợp tiền tố gợi nhớ (ví dụ: `usr_46587d36c1764cea`) an toàn về mặt mật mã học (`crypto/rand`).
+- Hàm `NewUUIDv7()`: Sinh khóa chính UUIDv7 theo chuẩn thời gian kết hợp ngẫu nhiên đảm bảo tính duy nhất và khả năng sắp xếp tự nhiên theo thứ tự thời gian.
 
 ---
 
@@ -229,7 +231,7 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 
 ### 2.6. Tầng Thực Thể Cơ Sở Dữ Liệu: [`models/`](file:///home/wsl-admin/projects/terra-clone/server/models)
 - Toàn bộ các model tuân thủ quy chuẩn tích hợp cùng `golang-migrate`: Struct tag GORM chỉ định nghĩa ánh xạ cột `gorm:"column:<ten_cot>"` (kèm `primaryKey` cho khóa chính và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL dư thừa của GORM AutoMigrate (`type:`, `not null`, `default:`, `unique`, `autoCreateTime`, `autoUpdateTime`).
-- [`user.go`](file:///home/wsl-admin/projects/terra-clone/server/models/user.go): Khai báo Entity `User` ánh xạ tới bảng `users`, liên kết quan hệ 1:1 với `UserCredentials` và `UserProfile`.
+- [`user.go`](file:///home/wsl-admin/projects/terra-clone/server/models/user.go): Khai báo Entity `User` ánh xạ tới bảng `users`, liên kết quan hệ 1:1 với `UserCredentials` và `UserProfile`. Tích hợp GORM hook `BeforeCreate` tự động sinh `UUIDv7` khi `ID` chưa được khởi tạo (`uuid.Nil`).
 - [`credential.go`](file:///home/wsl-admin/projects/terra-clone/server/models/credential.go): Khai báo Entity `UserCredentials` ánh xạ tới `user_credentials`, bổ sung phương thức kiểm tra trạng thái khóa `IsLocked()`.
 - [`profile.go`](file:///home/wsl-admin/projects/terra-clone/server/models/profile.go): Khai báo Entity `UserProfile` và kiểu tùy chỉnh `JSONMap` hiện thực `sql.Scanner` và `driver.Valuer` phục vụ đọc/ghi cột `preferences JSONB`.
 

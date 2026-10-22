@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/vlahanam/terra-clone/common"
@@ -12,14 +11,6 @@ import (
 	"github.com/vlahanam/terra-clone/repositories"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-)
-
-// [VN] Các hằng số quản lý chống tấn công Brute-force
-const (
-	// [VN] Số lần đăng nhập sai tối đa liên tiếp cho phép
-	MaxLoginAttempts = 5
-	// [VN] Thời gian tạm khóa tài khoản sau khi vượt quá số lần nhập sai
-	AccountLockTime = 15 * time.Minute
 )
 
 // [VN] AuthService định nghĩa các nghiệp vụ xác thực người dùng
@@ -75,14 +66,13 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 			WithTrace(err)
 	}
 
-	publicID := common.GeneratePublicID("usr")
+	publicID := common.GeneratePublicID(common.PREFIX_USER)
 	newUser := &models.User{
-		PublicID: req.FullName, // [VN] Sẽ được gán lại đúng publicID bên dưới
+		PublicID: publicID,
 		Email:    req.Email,
 		FullName: req.FullName,
 		Status:   models.UserStatusActive,
 	}
-	newUser.PublicID = publicID
 
 	// [VN] 3. Thực thi Database Transaction khởi tạo 3 bảng
 	db := s.userRepo.GetDB()
@@ -183,7 +173,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 	// [VN] 5. So khớp mật khẩu băm
 	if err := bcrypt.CompareHashAndPassword([]byte(creds.PasswordHash), []byte(req.Password)); err != nil {
 		// [VN] Nhập sai mật khẩu -> ghi nhận số lần sai và tự khóa nếu vượt ngưỡng
-		updatedCreds, recErr := s.credRepo.RecordFailedLogin(ctx, nil, user.ID, MaxLoginAttempts, AccountLockTime)
+		updatedCreds, recErr := s.credRepo.RecordFailedLogin(ctx, nil, user.ID, common.ACC_MAX_LOGIN_ATTEMPTS, common.ACC_LOCK_TIME)
 		if recErr != nil {
 			return nil, common.ErrInternalServerError.
 				WithReason("Failed to update login status").
@@ -192,10 +182,11 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 
 		if updatedCreds.IsLocked() {
 			return nil, common.ErrForbidden.
-				WithReasonf("Too many failed login attempts (exceeded %d). Account is temporarily locked for 15 minutes until %s", MaxLoginAttempts, updatedCreds.LockedUntil.Format("15:04:05 02/01/2006"))
+				WithReasonf("Too many failed login attempts (exceeded %d). Account is temporarily locked for 15 minutes until %s",
+					common.ACC_MAX_LOGIN_ATTEMPTS, updatedCreds.LockedUntil.Format("15:04:05 02/01/2006"))
 		}
 
-		remainingAttempts := MaxLoginAttempts - updatedCreds.FailedLoginAttempts
+		remainingAttempts := common.ACC_MAX_LOGIN_ATTEMPTS - updatedCreds.FailedLoginAttempts
 		return nil, common.ErrUnauthorized.
 			WithReasonf("Invalid email or password. You have %d attempts remaining", remainingAttempts)
 	}
@@ -227,7 +218,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 // [VN] RefreshToken cấp lại Access Token mới dựa trên Refresh Token còn hạn
 func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.AuthResponse, error) {
 	// [VN] 1. Kiểm tra tính hợp lệ và loại token
-	claims, err := common.ValidateToken(s.jwtSecret, req.RefreshToken, common.TokenTypeRefresh)
+	claims, err := common.ValidateToken(s.jwtSecret, req.RefreshToken, common.JWT_TOKEN_TYPE_REFRESH)
 	if err != nil {
 		return nil, common.ErrUnauthorized.
 			WithReason("Refresh token is invalid or expired").

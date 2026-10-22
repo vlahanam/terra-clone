@@ -70,7 +70,6 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 			users.GET("", userController.List)
 			users.POST("", userController.Create)
 			users.GET("/:id", userController.GetByID)
-			users.PATCH("/:id", userController.Update)
 			users.PUT("/:id", userController.Update)
 			users.DELETE("/:id", userController.Delete)
 		}

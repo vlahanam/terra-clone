@@ -1,0 +1,25 @@
+info:
+  name: register
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{DOMAIN}}/api/v1/auth/register"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "xxzxzvxxaaxxxx@gmail.com",
+        "password": "12345678",
+        "full_name": "xxx",
+        "phone_number": "12345678" 
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,39 @@
+info:
+  name: login
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{DOMAIN}}/api/v1/auth/login"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "xxx@gmail.com",
+        "password": "12345678"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const resData = res.getBody();
+        if (res.getStatus() === 200 && resData) {
+          let data = resData.data
+          if (data.access_token) {
+            bru.setEnvVar("access_token", data.access_token);
+          }
+
+          if (data.refresh_token) {
+            bru.setEnvVar("refresh_token", data.refresh_token);
+          }
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

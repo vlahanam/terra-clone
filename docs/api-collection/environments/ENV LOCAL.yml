@@ -2,7 +2,9 @@ name: ENV LOCAL
 variables:
   - name: PORT
     value: "8088"
-    description: ""
   - name: DOMAIN
     value: http://localhost:{{PORT}}
-    description: ""
+  - name: access_token
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFhMTYxY2MtOWYwOC03NzI3LWI1MzUtNjcwZjc2NDE0YmJkIiwicHVibGljX2lkIjoidXNyX2Y5NDMyYTM1ODY0YzI1NzciLCJlbWFpbCI6Inh4eEBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjoxLCJ0b2tlbl90eXBlIjoiYWNjZXNzIiwic3ViIjoiMDFhMTYxY2MtOWYwOC03NzI3LWI1MzUtNjcwZjc2NDE0YmJkIiwiZXhwIjoxNzkyNjU3MDI5LCJpYXQiOjE3OTI2NTYxMjl9.InvGo_qakl9bqwQwL8rOObTS2pmt4MflgMBPqn1cuSU
+  - name: refresh_token
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDFhMTYxY2MtOWYwOC03NzI3LWI1MzUtNjcwZjc2NDE0YmJkIiwicHVibGljX2lkIjoidXNyX2Y5NDMyYTM1ODY0YzI1NzciLCJlbWFpbCI6Inh4eEBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjoxLCJ0b2tlbl90eXBlIjoicmVmcmVzaCIsInN1YiI6IjAxYTE2MWNjLTlmMDgtNzcyNy1iNTM1LTY3MGY3NjQxNGJiZCIsImV4cCI6MTc5MzI2MDkyOSwiaWF0IjoxNzkyNjU2MTI5fQ.DxNU5KGXVr1ER7cQMYiET-SaNzof5BaS_nVyr899hpo

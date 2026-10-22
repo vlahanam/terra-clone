@@ -69,7 +69,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	}
 
 	newUser := &models.User{
-		PublicID:  common.GeneratePublicID("usr"),
+		PublicID:  common.GeneratePublicID(common.PREFIX_USER),
 		Email:     req.Email,
 		FullName:  req.FullName,
 		AvatarURL: req.AvatarURL,

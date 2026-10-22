@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 // [VN] GeneratePublicID sinh định danh công khai ngẫu nhiên với tiền tố chỉ định (ví dụ: usr_...)
@@ -17,3 +19,9 @@ func GeneratePublicID(prefix string) string {
 	}
 	return fmt.Sprintf("%s_%s", prefix, hex.EncodeToString(bytes))
 }
+
+// [VN] NewUUIDv7 sinh khóa chính UUIDv7 theo chuẩn thời gian kết hợp ngẫu nhiên cho các thực thể
+func NewUUIDv7() (uuid.UUID, error) {
+	return uuid.NewV7()
+}
+

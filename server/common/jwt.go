@@ -8,15 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// [VN] Các loại token JWT và thời hạn hiệu lực
-const (
-	TokenTypeAccess  = "access"
-	TokenTypeRefresh = "refresh"
-
-	AccessTokenDuration  = 15 * time.Minute
-	RefreshTokenDuration = 7 * 24 * time.Hour
-)
-
 // [VN] UserClaims lưu trữ thông tin định danh và phân quyền bên trong JWT payload
 type UserClaims struct {
 	UserID       uuid.UUID `json:"user_id"`
@@ -45,11 +36,11 @@ func GenerateTokenPair(secret string, userID uuid.UUID, publicID, email string, 
 		PublicID:     publicID,
 		Email:        email,
 		TokenVersion: tokenVersion,
-		TokenType:    TokenTypeAccess,
+		TokenType:    JWT_TOKEN_TYPE_ACCESS,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(AccessTokenDuration)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(JWT_ACCESS_TOKEN_DURATION)),
 		},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -64,11 +55,11 @@ func GenerateTokenPair(secret string, userID uuid.UUID, publicID, email string, 
 		PublicID:     publicID,
 		Email:        email,
 		TokenVersion: tokenVersion,
-		TokenType:    TokenTypeRefresh,
+		TokenType:    JWT_TOKEN_TYPE_REFRESH,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(RefreshTokenDuration)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(JWT_REFRESH_TOKEN_DURATION)),
 		},
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
@@ -81,7 +72,7 @@ func GenerateTokenPair(secret string, userID uuid.UUID, publicID, email string, 
 		AccessToken:  signedAccess,
 		RefreshToken: signedRefresh,
 		TokenType:    "Bearer",
-		ExpiresIn:    int64(AccessTokenDuration.Seconds()),
+		ExpiresIn:    int64(JWT_ACCESS_TOKEN_DURATION.Seconds()),
 	}, nil
 }
 

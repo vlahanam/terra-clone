@@ -3,7 +3,6 @@ package dto
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/vlahanam/terra-clone/models"
 )
 
@@ -52,8 +51,7 @@ type UserProfileResponse struct {
 
 // [VN] UserResponse định nghĩa thông tin người dùng hoàn chỉnh trả về cho client
 type UserResponse struct {
-	ID        uuid.UUID            `json:"id"`
-	PublicID  string               `json:"public_id"`
+	PublicID  string               `json:"id"`
 	Email     string               `json:"email"`
 	FullName  string               `json:"full_name"`
 	AvatarURL *string              `json:"avatar_url,omitempty"`
@@ -70,7 +68,6 @@ func ToUserResponse(user *models.User) *UserResponse {
 	}
 
 	res := &UserResponse{
-		ID:        user.ID,
 		PublicID:  user.PublicID,
 		Email:     user.Email,
 		FullName:  user.FullName,

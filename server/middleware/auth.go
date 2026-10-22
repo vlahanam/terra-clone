@@ -40,7 +40,7 @@ func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) g
 		}
 
 		tokenString := parts[1]
-		claims, err := common.ValidateToken(jwtSecret, tokenString, common.TokenTypeAccess)
+		claims, err := common.ValidateToken(jwtSecret, tokenString, common.JWT_TOKEN_TYPE_ACCESS)
 		if err != nil {
 			errResp := common.ErrUnauthorized.
 				WithReason("Invalid or expired token").

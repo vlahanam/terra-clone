@@ -95,9 +95,9 @@ terra-clone/
 │   │   └── run.go                # Khởi động ứng dụng và quản lý lifecycle cleanup
 │   ├── common/                   # Cấu trúc dữ liệu và chuẩn phản hồi dùng chung
 │   │   ├── error_response.go     # Chuẩn hóa lỗi API, Error Carriers, StackTrace
-│   │   ├── id.go                 # Hàm sinh public_id ngẫu nhiên an toàn
+│   │   ├── id.go                 # Hàm sinh public_id và NewUUIDv7
+│   │   ├── id_test.go            # Kiểm thử đơn vị NewUUIDv7 và sinh public_id
 │   │   ├── jwt.go                # Phát sinh và xác thực token JWT (Access/Refresh)
-│   │   ├── jwt_test.go           # Kiểm thử đơn vị JWT và sinh public_id
 │   │   ├── pagination.go         # Cấu trúc phân trang Cursor (Paging)
 │   │   └── success_response.go   # Chuẩn hóa phản hồi thành công (Data, Paging, Extra)
 │   ├── controllers/              # Tầng tiếp nhận HTTP Request & trả về Response
@@ -109,7 +109,8 @@ terra-clone/
 │   ├── models/                   # Entity models tương tác cơ sở dữ liệu qua GORM
 │   │   ├── credential.go         # Entity UserCredentials (hash, token_version, lock)
 │   │   ├── profile.go            # Entity UserProfile (hồ sơ, preferences JSONMap)
-│   │   └── user.go               # Entity User (id UUIDv7, public_id, email, status)
+│   │   ├── user.go               # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
+│   │   └── user_test.go          # Kiểm thử đơn vị cho hook BeforeCreate của User model
 │   ├── services/                 # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
 │   │   ├── auth_service.go       # Logic Auth, transaction 3 bảng, chống brute-force
 │   │   └── user_service.go       # Logic CRUD User, cursor pagination, soft-delete
@@ -341,6 +342,7 @@ Các hằng số lỗi chuẩn tích hợp sẵn:
 
 - Dự án sử dụng `golang-migrate` làm công cụ quản lý schema cơ sở dữ liệu độc lập, không dùng GORM `AutoMigrate`.
 - Toàn bộ struct Entity trong `server/models/` chỉ đóng vai trò Data Mapper: struct tag `gorm` chỉ định nghĩa ánh xạ cột `gorm:"column:<ten_cot>"` (kèm `primaryKey` khi khóa chính không mang tên mặc định `id`, và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL như `type:`, `not null`, `default:`, `unique:`.
+- Model `User` tích hợp hook GORM `BeforeCreate` tự động sinh `UUIDv7` khi `id` chưa được khởi tạo (`uuid.Nil`), ngăn chặn triệt để tình trạng chèn `00000000-0000-0000-0000-000000000000` vào CSDL.
 
 ---
 

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // [VN] Các trạng thái tài khoản người dùng
@@ -31,3 +32,16 @@ type User struct {
 func (User) TableName() string {
 	return "users"
 }
+
+// [VN] BeforeCreate tự động sinh khóa chính UUIDv7 cho User trước khi chèn vào CSDL nếu chưa có ID
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.ID == uuid.Nil {
+		newID, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		u.ID = newID
+	}
+	return nil
+}
+
