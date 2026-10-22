@@ -233,3 +233,39 @@ Khi có lỗi, API trả về cấu trúc lỗi chi tiết theo [`common.Default
 
 ### 5.2. Bảo Mật Thông Tin Nhật Ký (Log Sanitization)
 - **Tuyệt đối không ghi vào log**: Mật khẩu dạng plain text, mã hash mật khẩu, Secret Key, Access Token / Refresh Token, số thẻ ngân hàng hoặc thông tin định danh cá nhân nhạy cảm (PII).
+
+---
+
+## 6. 🧪 Tiêu Chuẩn Kiểm Thử Backend (Backend Testing Standards)
+
+### 6.1. Nguyên Tắc Kiểm Thử Trọng Tâm (Focused Testing Scope)
+Để tối ưu hóa chi phí phát triển, giảm gánh nặng bảo trì mock và đảm bảo chất lượng phần mềm tập trung vào đúng nơi phát sinh giá trị nghiệp vụ, dự án thiết lập quy tắc bắt buộc:
+
+- **Chỉ viết Unit Test cho tầng Service (`server/services/`)**:
+  - Mọi unit test cho backend chỉ được tập trung duy nhất vào các tệp thuộc tầng Service (ví dụ: `auth_service_test.go`, `user_service_test.go`).
+  - **Lý do**: Tầng Service chứa 100% logic nghiệp vụ cốt lõi (business rules), các thuật toán tính toán, quy tắc xác thực quyền hạn và điều phối luồng xử lý. Tầng này làm việc hoàn toàn với Go struct thuần túy và `context.Context`, độc lập với HTTP transport và cơ sở dữ liệu thật, giúp unit test chạy nhanh, ổn định và có tính bao phủ cao nhất.
+- **CẤM viết test cho các thành phần khác**:
+  - **Controllers (`controllers/`)**: Không viết test. Tầng Controller chỉ thực hiện binding DTO từ HTTP request và chuyển tiếp lời gọi sang Service; việc viết test cho Controller gây lãng phí thời gian và trùng lặp với Service test.
+  - **Repositories (`repositories/`)**: Không viết test. Tầng Repository đóng gói các câu lệnh truy vấn qua GORM/SQL; không viết unit test với mock ORM phức tạp hoặc in-memory DB dễ gây sai lệch hành vi so với PostgreSQL thực tế.
+  - **Models, Middleware, Common, Internal Config/Router, Migrations**: Không viết test, trừ khi có yêu cầu đặc thù bằng văn bản từ Lead.
+
+### 6.2. Quy Chuẩn Hiện Thực Unit Test Cho Service
+1. **Vị trí & Đặt tên tệp (Thư mục `server/tests/` riêng biệt)**:
+   - Toàn bộ các tệp test và mock helper của tầng Service được tách biệt hoàn toàn sang thư mục [`server/tests/`](file:///home/wsl-admin/projects/terra-clone/server/tests):
+     - `server/tests/auth_service_test.go`
+     - `server/tests/user_service_test.go`
+     - `server/tests/mock_test.go`
+   - Khai báo `package tests` nhằm kiểm thử độc lập theo chuẩn Black-Box Testing thông qua các public interface của Service (`services.AuthService`, `services.UserService`), giữ cho thư mục thực thi `server/services/` luôn tinh gọn và thuần túy code nghiệp vụ.
+2. **Kỹ thuật Mocking**:
+   - Khởi tạo Mock struct hiện thực Interface của tầng Repository (hoặc các dịch vụ bên thứ ba) mà Service phụ thuộc.
+   - Kiểm thử độc lập logic của Service mà không cần bất kỳ kết nối mạng nội bộ hoặc CSDL nào.
+3. **Quy chuẩn Ngôn ngữ & Chú thích trong Test**:
+   - **Chú thích (Comments)**: Bắt buộc có tiền tố `[VN]` và viết bằng tiếng Việt rõ nghĩa (ví dụ: `// [VN] Kiểm thử trường hợp đăng nhập thành công với mật khẩu chính xác`).
+   - **Thông điệp (Messages & Assertions)**: Toàn bộ thông điệp test runner, failure reason trong `assert` hoặc `require` (thư viện `testify`) phải viết 100% bằng **Tiếng Anh (English)**.
+4. **Lệnh thực thi kiểm thử chuẩn**:
+   ```bash
+   # Chạy toàn bộ test trong server/tests/ có kiểm tra race detector và đo coverage tầng services
+   cd server && go test -v -coverpkg=./services/... -race ./tests/...
+   # Hoặc dùng lệnh Make từ root
+   make test
+   ```

@@ -96,7 +96,6 @@ terra-clone/
 │   ├── common/                   # Cấu trúc dữ liệu và chuẩn phản hồi dùng chung
 │   │   ├── error_response.go     # Chuẩn hóa lỗi API, Error Carriers, StackTrace
 │   │   ├── id.go                 # Hàm sinh public_id và NewUUIDv7
-│   │   ├── id_test.go            # Kiểm thử đơn vị NewUUIDv7 và sinh public_id
 │   │   ├── jwt.go                # Phát sinh và xác thực token JWT (Access/Refresh)
 │   │   ├── pagination.go         # Cấu trúc phân trang Cursor (Paging)
 │   │   └── success_response.go   # Chuẩn hóa phản hồi thành công (Data, Paging, Extra)
@@ -109,11 +108,14 @@ terra-clone/
 │   ├── models/                   # Entity models tương tác cơ sở dữ liệu qua GORM
 │   │   ├── credential.go         # Entity UserCredentials (hash, token_version, lock)
 │   │   ├── profile.go            # Entity UserProfile (hồ sơ, preferences JSONMap)
-│   │   ├── user.go               # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
-│   │   └── user_test.go          # Kiểm thử đơn vị cho hook BeforeCreate của User model
+│   │   └── user.go                   # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
 │   ├── services/                 # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
 │   │   ├── auth_service.go       # Logic Auth, transaction 3 bảng, chống brute-force
 │   │   └── user_service.go       # Logic CRUD User, cursor pagination, soft-delete
+│   ├── tests/                    # Thư mục kiểm thử đơn vị độc lập cho tầng Service (81.6% coverage)
+│   │   ├── auth_service_test.go  # Unit test toàn diện cho AuthService
+│   │   ├── mock_test.go          # Mock Repositories và helper sqlmock
+│   │   └── user_service_test.go  # Unit test toàn diện cho UserService
 │   ├── repositories/             # Tầng tương tác truy vấn dữ liệu (Data Access)
 │   │   ├── credential_repository.go # Truy vấn credentials, đếm sai pass, tăng token version
 │   │   ├── profile_repository.go # Truy vấn hồ sơ người dùng, upsert JSONB
@@ -344,6 +346,24 @@ Các hằng số lỗi chuẩn tích hợp sẵn:
 - Toàn bộ struct Entity trong `server/models/` chỉ đóng vai trò Data Mapper: struct tag `gorm` chỉ định nghĩa ánh xạ cột `gorm:"column:<ten_cot>"` (kèm `primaryKey` khi khóa chính không mang tên mặc định `id`, và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL như `type:`, `not null`, `default:`, `unique:`.
 - Model `User` tích hợp hook GORM `BeforeCreate` tự động sinh `UUIDv7` khi `id` chưa được khởi tạo (`uuid.Nil`), ngăn chặn triệt để tình trạng chèn `00000000-0000-0000-0000-000000000000` vào CSDL.
 
+### 6. Quy Chuẩn Kiểm Thử Backend (Backend Unit Testing Rules)
+
+- **Chỉ viết Unit Test cho tầng Service**: Đối với phân hệ backend (`server/`), các kỹ sư và AI Agent **chỉ thực hiện viết unit test cho tầng Service**.
+- **Thư mục kiểm thử riêng biệt (`server/tests/`)**: Toàn bộ các file kiểm thử và mock helpers được đặt trong thư mục [`server/tests/`](file:///home/wsl-admin/projects/terra-clone/server/tests) theo phong cách Black-Box Testing (`package tests`), giữ cho thư mục triển khai nghiệp vụ `server/services/` luôn tinh gọn và không bị phân mảnh bởi file test.
+- **Không viết test cho các thành phần khác**: Tuyệt đối **không viết test** (unit test, integration test, mock test) cho các phần khác như Controllers, Repositories, Models, Middleware, Common, Internal Config/Router, hay Migrations.
+- **Lý do kiến trúc**: Tầng Service chứa 100% logic nghiệp vụ cốt lõi, không phụ thuộc vào `gin.Context` hay PostgreSQL connection thực tế, giúp các bài kiểm thử chạy cực nhanh, độc lập và mang lại giá trị bảo đảm chất lượng cao nhất mà không phát sinh chi phí duy trì mock ORM cồng kềnh.
+- **Tiêu chuẩn viết test**:
+  - File test đặt trong `server/tests/<tên_service>_test.go`.
+  - Mọi comment trong file test bắt buộc có tiền tố `[VN]` và viết bằng tiếng Việt.
+  - Mọi assertion message và test failure description viết 100% bằng Tiếng Anh.
+- **Lệnh chạy Unit Test**:
+  ```bash
+  make test
+  # hoặc chạy thủ công:
+  cd server && go test -v -coverpkg=./services/... -race ./tests/...
+  ```
+  *(Toàn bộ tầng Service đạt **81.6% statement coverage**, kiểm thử độc lập hoàn toàn không cần chạy database container bên ngoài).*
+
 ---
 
 ## ⚡ Hướng dẫn Bắt đầu Nhanh (Quick Start)
@@ -456,6 +476,7 @@ make help
 | `make nginx-reload`             | Nạp lại cấu hình Nginx tức thời mà không làm gián đoạn container            |
 | `make psql-cli` / `make db-cli` | Mở giao diện dòng lệnh PostgreSQL CLI (`psql`) trong container database     |
 | `make clean`                    | Dừng và xóa sạch toàn bộ container, mạng nội bộ và volumes của dự án        |
+| `make test`                     | Chạy bộ kiểm thử đơn vị tầng Service trong `server/tests/` (81.6% coverage) |
 
 ---
 

@@ -112,6 +112,10 @@ flowchart TD
   - Khóa chính luôn dùng kiểu `UUID` mặc định `uuidv7()`.
   - Mọi bảng có đủ `created_at` và `updated_at` kiểu `TIMESTAMPTZ`.
   - Schema CSDL do `golang-migrate` quản lý độc lập; các struct Entity trong `server/models/` chỉ cần tag `gorm:"column:<ten_cot>"` (kèm `primaryKey` cho khóa chính và quan hệ `foreignKey`), loại bỏ toàn bộ các tag DDL dư thừa của GORM AutoMigrate (`type:`, `not null`, `default:`, `unique`, `autoCreateTime`, `autoUpdateTime`).
+- **Quy Chuẩn Kiểm Thử Backend (Backend Unit Testing Rules)**:
+  - **Chỉ viết Unit Test cho tầng Service**: Mọi unit test cho backend CHỈ ĐƯỢC PHÉP viết cho các nghiệp vụ thuộc tầng Service (`server/services/`).
+  - **Thư mục lưu trữ tập trung (`server/tests/`)**: Toàn bộ các file kiểm thử và mock helper được đặt tập trung trong thư mục [`server/tests/`](file:///home/wsl-admin/projects/terra-clone/server/tests) (ví dụ: `server/tests/auth_service_test.go`, `server/tests/user_service_test.go`, `server/tests/mock_test.go`). Việc này giúp giữ cho thư mục mã nguồn thực thi `server/services/` luôn sạch sẽ, phân tách rõ ràng giữa production code và test code.
+  - **CẤM viết test cho các phần khác**: Tuyệt đối KHÔNG viết test (bao gồm unit test, integration test, mock test) cho bất kỳ phần nào khác ngoài Service (như `controllers/`, `repositories/`, `models/`, `middleware/`, `common/`, `internal/`, migrations,...).
 
 ### 🔴 Bước 4: Đồng Bộ Tài Liệu & Cổng Đóng Task Bắt Buộc (Mandatory Documentation Gate)
 - **Yêu cầu**: Sau khi hoàn thiện mã nguồn và kiểm thử xác minh tính năng thành công, Agent **BẮT BUỘC** phải cập nhật toàn bộ các file tài liệu tương ứng:
@@ -154,6 +158,9 @@ flowchart TD
 4. **Quy Chuẩn Ngôn Ngữ Chú Thích & Thông Điệp (Comment & Message Policy)**:
    - Comment code tập trung vào 2 đối tượng chính: (1) Comment hàm; (2) Comment các đoạn code khó hiểu. Mọi comment bắt buộc có prefix `[VN]` ở đầu và viết bằng tiếng Việt.
    - Tất cả các message (logs, errors, reasons, HTTP responses, console prints, git commits) bắt buộc viết bằng Tiếng Anh.
+5. **Quy Chuẩn Kiểm Thử Backend (Backend Unit Testing Only for Services)**:
+   - Đối với phân hệ backend (`server/`), chỉ thực hiện viết unittest cho tầng Service, toàn bộ file test đặt trong thư mục riêng [`server/tests/`](file:///home/wsl-admin/projects/terra-clone/server/tests).
+   - Tuyệt đối không viết test cho bất kỳ thành phần nào khác ngoài tầng Service (controllers, repositories, models, middleware, internal config/router,...).
 
 ---
 
@@ -165,6 +172,7 @@ Trước khi thông báo hoàn tất bất kỳ chức năng nào tới người
 - [ ] Đã đọc và đối chiếu các quy chuẩn trong `docs/design-guidelines.md` và `docs/system-architecture.md`.
 - [ ] Mã nguồn tuân thủ Clean Architecture: Controller $\rightarrow$ Service $\rightarrow$ Repository.
 - [ ] Tuân thủ quy chuẩn chú thích & thông điệp: Viết comment hàm và comment đoạn code khó hiểu kèm tiền tố `[VN]`; toàn bộ messages (log, error, reason, response) viết bằng Tiếng Anh.
+- [ ] Tuân thủ quy chuẩn test backend: Đối với server chỉ viết unit test cho tầng Service (`server/services/`), không viết test cho các thành phần khác.
 - [ ] Có migration `.up.sql` và `.down.sql` nếu có thay đổi CSDL; migration chạy trơn tru không lỗi.
 - [ ] Đã xử lý lỗi chuẩn `common.DefaultError` với đầy đủ context và không nuốt lỗi.
 - [ ] Đã cập nhật đầy đủ [`docs/codebase-summary.md`](file:///home/wsl-admin/projects/terra-clone/docs/codebase-summary.md).

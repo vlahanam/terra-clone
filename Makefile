@@ -1,4 +1,4 @@
-.PHONY: help up down restart build logs ps dev-up dev-down dev-build dev-logs dev-restart staging-up staging-down staging-build staging-logs prod-up prod-down prod-build prod-logs server-sh nginx-sh nginx-reload psql-cli db-cli clean migration
+.PHONY: help up down restart build logs ps dev-up dev-down dev-build dev-logs dev-restart staging-up staging-down staging-build staging-logs prod-up prod-down prod-build prod-logs server-sh nginx-sh nginx-reload psql-cli db-cli clean migration test
 
 # [VN] Default environment: Dev / Local
 COMPOSE_DEV = docker compose -f docker-compose.yml
@@ -106,3 +106,9 @@ migrate-down: ## [VN] Rollback (hoàn tác) 1 bước migration gần nhất
 migrate-reset: ## [VN] Xóa sạch database (drop) và chạy lại toàn bộ migration từ đầu
 	docker exec -it $(SERVER_CONTAINER) migrate -path $(DB_MIGRATIONS_DIR) -database "$(DB_URL)" drop
 	docker exec -it $(SERVER_CONTAINER) migrate -path $(DB_MIGRATIONS_DIR) -database "$(DB_URL)" up
+
+# [VN] ----------------------------------------------------------------------
+# [VN] KIỂM THỬ ĐƠN VỊ (UNIT TESTING)
+# [VN] ----------------------------------------------------------------------
+test: ## [VN] Chạy bộ kiểm thử đơn vị tầng Service (server/tests/)
+	cd server && go test -v -coverpkg=./services/... -race ./tests/...

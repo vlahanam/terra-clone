@@ -75,6 +75,8 @@ flowchart TD
     - `POST /api/v1/auth/logout-all`: Tăng `token_version` để đăng xuất khỏi toàn bộ thiết bị.
   - Middleware `RequireAuth`: Trích xuất Header `Authorization: Bearer <token>`, giải mã claims và xác thực với `token_version` trong CSDL.
   - Middleware `RequestID`: Tự động gán `X-Request-ID` độc nhất theo chuẩn UUIDv7.
+- [x] **Kiểm Thử Đơn Vị Tầng Service (Backend Service Unit Tests)**:
+  - Triển khai toàn bộ unit test cho `AuthService` và `UserService` đạt **81.6% statement coverage** độc lập bằng Mocking và `go-sqlmock`.
 - [ ] **Tích Hợp OAuth 2.0 (Google Login)**:
   - Kế hoạch giai đoạn sau.
 

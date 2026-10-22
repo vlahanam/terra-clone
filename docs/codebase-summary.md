@@ -47,7 +47,6 @@ terra-clone/
 │   ├── common/                       # Khối dùng chung (Responses, Errors, Pagination, JWT, ID)
 │   │   ├── error_response.go         # Chuẩn hóa lỗi API, StackTrace & Error carrier
 │   │   ├── id.go                     # Hàm sinh public_id và NewUUIDv7
-│   │   ├── id_test.go                # Kiểm thử đơn vị cho NewUUIDv7 và public_id generator
 │   │   ├── jwt.go                    # Phát sinh và xác thực JWT token pair (Access/Refresh)
 │   │   ├── pagination.go             # Cấu trúc phân trang Cursor (Paging)
 │   │   └── success_response.go       # Chuẩn hóa phản hồi thành công
@@ -78,15 +77,18 @@ terra-clone/
 │   ├── models/                       # Entity models tương tác cơ sở dữ liệu qua GORM
 │   │   ├── credential.go             # Entity UserCredentials (password_hash, token_version, lock)
 │   │   ├── profile.go                # Entity UserProfile (phone, address, JSONMap preferences)
-│   │   ├── user.go                   # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
-│   │   └── user_test.go              # Kiểm thử đơn vị cho hook BeforeCreate của User model
+│   │   └── user.go                   # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
 │   ├── repositories/                 # Tầng tương tác cơ sở dữ liệu (GORM Data Access)
 │   │   ├── credential_repository.go  # Quản lý credentials, đếm failed login, tăng token version
 │   │   ├── profile_repository.go     # Quản lý profile người dùng và preferences JSONB
 │   │   └── user_repository.go        # CRUD User, tìm kiếm email/public_id, phân trang cursor
-│   └── services/                     # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
-│       ├── auth_service.go           # Nghiệp vụ Đăng ký (transaction), Đăng nhập, Refresh, Logout-All
-│       └── user_service.go           # Nghiệp vụ CRUD người dùng, phân trang cursor, soft-delete
+│   ├── services/                 # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
+│   │   ├── auth_service.go           # Nghiệp vụ Đăng ký (transaction), Đăng nhập, Refresh, Logout-All
+│   │   └── user_service.go           # Nghiệp vụ CRUD người dùng, phân trang cursor, soft-delete
+│   └── tests/                    # Thư mục kiểm thử đơn vị độc lập cho tầng Service (81.6% coverage)
+│       ├── auth_service_test.go      # Kiểm thử đơn vị toàn diện cho AuthService
+│       ├── mock_test.go              # Mock struct giả lập UserRepository, CredentialRepository, ProfileRepository
+│       └── user_service_test.go      # Kiểm thử đơn vị toàn diện cho UserService
 └── frontend/                         # Thư mục mã nguồn Frontend Web (Next.js)
     └── .dockerignore                 # File ignore cho Docker frontend
 ```
@@ -260,19 +262,27 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 
 ---
 
-### 2.9. Tầng Giao Tiếp Vận Chuyển: [`controllers/`](file:///home/wsl-admin/projects/terra-clone/server/controllers)
+### 2.9. Tầng Kiểm Thử Đơn Vị Độc Lập: [`tests/`](file:///home/wsl-admin/projects/terra-clone/server/tests)
+Toàn bộ mã kiểm thử được đưa ra thư mục riêng biệt `server/tests/` nhằm phân tách rõ ràng với mã nguồn sản phẩm và tuân thủ mô hình Black-Box Unit Testing cho tầng Service:
+- [`mock_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/mock_test.go): Hiện thực Mock Repository (`MockUserRepository`, `MockCredentialRepository`, `MockProfileRepository`) bằng `testify/mock` cùng helper `newMockGormDB()` phục vụ kiểm thử Transaction với `go-sqlmock`.
+- [`auth_service_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/auth_service_test.go): Bộ unit test bao phủ toàn diện cho `AuthService` (`Register`, `Login`, `RefreshToken`, `LogoutAll`, `GetMe`).
+- [`user_service_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/user_service_test.go): Bộ unit test bao phủ toàn diện cho `UserService` (`CreateUser`, `GetUserByID`, `ListUsers`, `UpdateUser`, `DeleteUser`).
+
+---
+
+### 2.10. Tầng Giao Tiếp Vận Chuyển: [`controllers/`](file:///home/wsl-admin/projects/terra-clone/server/controllers)
 - [`auth_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/auth_controller.go): Điều phối các endpoint `/api/v1/auth/*`: `Register`, `Login`, `RefreshToken`, `LogoutAll`, `GetMe`.
 - [`user_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/user_controller.go): Điều phối các endpoint `/api/v1/users/*`: `Create`, `GetByID`, `List`, `Update`, `Delete`.
 
 ---
 
-### 2.10. Tầng Data Transfer Objects: [`dto/`](file:///home/wsl-admin/projects/terra-clone/server/dto)
+### 2.11. Tầng Data Transfer Objects: [`dto/`](file:///home/wsl-admin/projects/terra-clone/server/dto)
 - [`auth_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/auth_dto.go): Định nghĩa cấu trúc binding JSON cho luồng xác thực (`RegisterRequest`, `LoginRequest`, `RefreshTokenRequest`, `AuthResponse`).
 - [`user_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/user_dto.go): Định nghĩa cấu trúc binding và serialization cho quản trị người dùng (`CreateUserRequest`, `UpdateUserRequest`, `ListUsersQuery`, `UserProfileResponse`, `UserResponse`).
 
 ---
 
-### 2.11. Quy Chuẩn Chú Thích & Thông Điệp (Language & Comment Conventions)
+### 2.12. Quy Chuẩn Chú Thích & Thông Điệp (Language & Comment Conventions)
 - **Code Comments**:
   - **Phạm vi bắt buộc**: (1) Comment hàm (docstring mô tả trách nhiệm, tham số, kết quả); (2) Comment các đoạn code khó hiểu (thuật toán phức tạp, transaction, edge cases, workaround). Tránh comment rườm rà ở những dòng code hiển nhiên.
   - **Định dạng**: Mọi chú thích mã nguồn bắt buộc có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt.
@@ -282,3 +292,16 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
   - Phản hồi HTTP API hoặc status text.
   - Commit messages trong Git.
 - **Phân định rõ ràng**: Tiền tố `[VN]` chỉ áp dụng cho chú thích mã nguồn, tuyệt đối không đặt tiền tố `[VN]` vào nội dung chuỗi message của ứng dụng.
+
+---
+
+### 2.13. Quy Chuẩn Kiểm Thử Backend (Backend Unit Testing Standards)
+- **Phạm vi kiểm thử**: Đối với phân hệ backend (`server/`), **chỉ thực hiện viết unit test cho tầng Service**.
+- **Thư mục lưu trữ**: Đặt tập trung trong `server/tests/` với `package tests`.
+- **Quy tắc cấm**: Tuyệt đối **không viết test** cho các thành phần khác như `controllers/`, `repositories/`, `models/`, `middleware/`, `common/`, `internal/`, migrations.
+- **Mục tiêu**: Tập trung kiểm thử 100% vào logic nghiệp vụ và tính toán cốt lõi, độc lập hoàn toàn với tầng giao tiếp HTTP và hệ thống cơ sở dữ liệu. Mọi tương tác dữ liệu từ Repository trong tầng Service được kiểm thử qua cơ chế Mocking Interface.
+- **Tiêu chuẩn viết test**:
+  - File test đặt trong `server/tests/<service>_test.go`.
+  - Comment trong test có tiền tố `[VN]` và viết bằng tiếng Việt.
+  - Message và assertion description viết 100% bằng Tiếng Anh.
+  - Chạy test qua lệnh: `make test` hoặc `cd server && go test -v -coverpkg=./services/... -race ./tests/...`.
