@@ -59,11 +59,11 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 	existingUser, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err == nil && existingUser != nil {
 		return nil, common.ErrConflict.
-			WithReason("Địa chỉ email này đã được đăng ký trong hệ thống").
+			WithReason("This email address is already registered in the system").
 			WithDetail("email", req.Email)
 	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi khi kiểm tra email người dùng").
+			WithReason("Failed to verify user email").
 			WithTrace(err)
 	}
 
@@ -71,7 +71,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi mã hóa mật khẩu").
+			WithReason("Failed to hash password").
 			WithTrace(err)
 	}
 
@@ -118,7 +118,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Không thể hoàn tất đăng ký tài khoản").
+			WithReason("Unable to complete user registration").
 			WithTrace(err)
 	}
 
@@ -126,7 +126,7 @@ func (s *authService) Register(ctx context.Context, req *dto.RegisterRequest) (*
 	tokens, err := common.GenerateTokenPair(s.jwtSecret, newUser.ID, newUser.PublicID, newUser.Email, 1)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi phát sinh token xác thực").
+			WithReason("Failed to generate authentication tokens").
 			WithTrace(err)
 	}
 
@@ -146,21 +146,21 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.ErrUnauthorized.
-				WithReason("Email hoặc mật khẩu không chính xác")
+				WithReason("Invalid email or password")
 		}
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi tra cứu thông tin người dùng").
+			WithReason("Failed to query user information").
 			WithTrace(err)
 	}
 
 	// [VN] 2. Kiểm tra trạng thái tài khoản
 	if user.Status == models.UserStatusDeleted {
 		return nil, common.ErrUnauthorized.
-			WithReason("Tài khoản này không còn hoạt động trên hệ thống")
+			WithReason("This account is no longer active in the system")
 	}
 	if user.Status == models.UserStatusInactive {
 		return nil, common.ErrForbidden.
-			WithReason("Tài khoản của bạn đã bị vô hiệu hóa, vui lòng liên hệ quản trị viên")
+			WithReason("Your account has been deactivated, please contact system administrator")
 	}
 
 	// [VN] 3. Tra cứu credentials nếu chưa có sẵn
@@ -169,7 +169,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 		creds, err = s.credRepo.FindByUserID(ctx, user.ID)
 		if err != nil {
 			return nil, common.ErrUnauthorized.
-				WithReason("Thông tin xác thực không tồn tại").
+				WithReason("User credentials not found").
 				WithTrace(err)
 		}
 	}
@@ -177,7 +177,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 	// [VN] 4. Kiểm tra tài khoản có bị khóa tạm thời do brute-force
 	if creds.IsLocked() {
 		return nil, common.ErrForbidden.
-			WithReasonf("Tài khoản đang bị tạm khóa đến %s do nhập sai mật khẩu nhiều lần", creds.LockedUntil.Format("15:04:05 02/01/2006"))
+			WithReasonf("Account is temporarily locked until %s due to multiple failed login attempts", creds.LockedUntil.Format("15:04:05 02/01/2006"))
 	}
 
 	// [VN] 5. So khớp mật khẩu băm
@@ -186,24 +186,24 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 		updatedCreds, recErr := s.credRepo.RecordFailedLogin(ctx, nil, user.ID, MaxLoginAttempts, AccountLockTime)
 		if recErr != nil {
 			return nil, common.ErrInternalServerError.
-				WithReason("Lỗi cập nhật trạng thái đăng nhập").
+				WithReason("Failed to update login status").
 				WithTrace(recErr)
 		}
 
 		if updatedCreds.IsLocked() {
 			return nil, common.ErrForbidden.
-				WithReasonf("Bạn đã nhập sai quá %d lần. Tài khoản tạm khóa 15 phút đến %s", MaxLoginAttempts, updatedCreds.LockedUntil.Format("15:04:05 02/01/2006"))
+				WithReasonf("Too many failed login attempts (exceeded %d). Account is temporarily locked for 15 minutes until %s", MaxLoginAttempts, updatedCreds.LockedUntil.Format("15:04:05 02/01/2006"))
 		}
 
 		remainingAttempts := MaxLoginAttempts - updatedCreds.FailedLoginAttempts
 		return nil, common.ErrUnauthorized.
-			WithReasonf("Email hoặc mật khẩu không chính xác. Bạn còn %d lần thử", remainingAttempts)
+			WithReasonf("Invalid email or password. You have %d attempts remaining", remainingAttempts)
 	}
 
 	// [VN] 6. Đăng nhập thành công -> Reset số lần nhập sai
 	if err := s.credRepo.ResetFailedLogin(ctx, nil, user.ID); err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi làm mới trạng thái phiên đăng nhập").
+			WithReason("Failed to reset login session status").
 			WithTrace(err)
 	}
 
@@ -211,7 +211,7 @@ func (s *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Au
 	tokens, err := common.GenerateTokenPair(s.jwtSecret, user.ID, user.PublicID, user.Email, creds.TokenVersion)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi tạo token xác thực").
+			WithReason("Failed to generate authentication tokens").
 			WithTrace(err)
 	}
 
@@ -230,7 +230,7 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	claims, err := common.ValidateToken(s.jwtSecret, req.RefreshToken, common.TokenTypeRefresh)
 	if err != nil {
 		return nil, common.ErrUnauthorized.
-			WithReason("Refresh token không hợp lệ hoặc đã hết hạn").
+			WithReason("Refresh token is invalid or expired").
 			WithTrace(err)
 	}
 
@@ -238,13 +238,13 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	user, err := s.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
 		return nil, common.ErrUnauthorized.
-			WithReason("Người dùng của token không tồn tại").
+			WithReason("Token owner does not exist").
 			WithTrace(err)
 	}
 
 	if user.Status != models.UserStatusActive {
 		return nil, common.ErrForbidden.
-			WithReason("Tài khoản người dùng hiện không ở trạng thái hoạt động")
+			WithReason("User account is not currently active")
 	}
 
 	creds := user.Credentials
@@ -252,7 +252,7 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 		creds, err = s.credRepo.FindByUserID(ctx, user.ID)
 		if err != nil {
 			return nil, common.ErrUnauthorized.
-				WithReason("Không tìm thấy thông tin xác thực").
+				WithReason("User credentials not found").
 				WithTrace(err)
 		}
 	}
@@ -260,14 +260,14 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	// [VN] 3. Kiểm tra token_version xem token này đã bị thu hồi chưa
 	if creds.TokenVersion != claims.TokenVersion {
 		return nil, common.ErrUnauthorized.
-			WithReason("Phiên đăng nhập này đã bị thu hồi do đăng xuất hoặc đổi mật khẩu")
+			WithReason("This session has been revoked due to logout or password change")
 	}
 
 	// [VN] 4. Phát sinh Token Pair mới
 	tokens, err := common.GenerateTokenPair(s.jwtSecret, user.ID, user.PublicID, user.Email, creds.TokenVersion)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi phát sinh token mới").
+			WithReason("Failed to generate new token pair").
 			WithTrace(err)
 	}
 
@@ -284,7 +284,7 @@ func (s *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 func (s *authService) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 	if err := s.credRepo.IncrementTokenVersion(ctx, nil, userID); err != nil {
 		return common.ErrInternalServerError.
-			WithReason("Lỗi thu hồi các phiên đăng nhập").
+			WithReason("Failed to revoke user sessions").
 			WithTrace(err)
 	}
 	return nil
@@ -296,11 +296,11 @@ func (s *authService) GetMe(ctx context.Context, userID uuid.UUID) (*dto.UserRes
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.ErrNotFound.
-				WithReason("Không tìm thấy thông tin người dùng").
+				WithReason("User information not found").
 				WithTrace(err)
 		}
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi truy vấn thông tin người dùng").
+			WithReason("Failed to query user information").
 			WithTrace(err)
 	}
 

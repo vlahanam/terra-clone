@@ -276,7 +276,7 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
   - **Định dạng**: Mọi chú thích mã nguồn bắt buộc có tiền tố `[VN]` ở đầu và viết bằng tiếng Việt.
 - **Messages**: Tất cả các loại thông điệp (messages) trong hệ thống bắt buộc viết bằng Tiếng Anh (English):
   - Log messages trong `slog` (ví dụ: `slog.Info("server started successfully", ...)`).
-  - Error messages (`ErrorField`, `ReasonField` trong `common.DefaultError`, chuỗi trong `errors.New`, `fmt.Errorf`).
+  - Error messages (`ErrorField`, `ReasonField` trong `common.DefaultError`, chuỗi trong `errors.New`, `fmt.Errorf`). Toàn bộ chuỗi lý do lỗi (`WithReason`, `WithReasonf`) tại các tầng `controllers/`, `middleware/`, `services/` đã được chuẩn hóa 100% bằng Tiếng Anh.
   - Phản hồi HTTP API hoặc status text.
   - Commit messages trong Git.
 - **Phân định rõ ràng**: Tiền tố `[VN]` chỉ áp dụng cho chú thích mã nguồn, tuyệt đối không đặt tiền tố `[VN]` vào nội dung chuỗi message của ứng dụng.

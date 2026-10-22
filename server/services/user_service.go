@@ -48,18 +48,18 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	existing, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err == nil && existing != nil {
 		return nil, common.ErrConflict.
-			WithReason("Địa chỉ email đã được sử dụng trên hệ thống").
+			WithReason("Email address is already in use in the system").
 			WithDetail("email", req.Email)
 	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi khi kiểm tra thông tin email").
+			WithReason("Failed to verify email address").
 			WithTrace(err)
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi mã hóa mật khẩu").
+			WithReason("Failed to hash password").
 			WithTrace(err)
 	}
 
@@ -113,7 +113,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Không thể tạo mới người dùng").
+			WithReason("Unable to create new user").
 			WithTrace(err)
 	}
 
@@ -126,11 +126,11 @@ func (s *userService) GetUserByID(ctx context.Context, idOrPublicID string) (*dt
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.ErrNotFound.
-				WithReason("Không tìm thấy người dùng được yêu cầu").
+				WithReason("Requested user not found").
 				WithDetail("id", idOrPublicID)
 		}
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi khi truy xuất dữ liệu người dùng").
+			WithReason("Failed to retrieve user data").
 			WithTrace(err)
 	}
 
@@ -142,7 +142,7 @@ func (s *userService) ListUsers(ctx context.Context, query *dto.ListUsersQuery) 
 	users, nextCursor, total, err := s.userRepo.List(ctx, query.Cursor, query.Limit, query.Search, query.Status)
 	if err != nil {
 		return nil, nil, common.ErrInternalServerError.
-			WithReason("Lỗi khi lấy danh sách người dùng").
+			WithReason("Failed to retrieve user list").
 			WithTrace(err)
 	}
 
@@ -166,11 +166,11 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.ErrNotFound.
-				WithReason("Người dùng cần cập nhật không tồn tại").
+				WithReason("User to update does not exist").
 				WithDetail("id", idOrPublicID)
 		}
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi khi tìm kiếm người dùng để cập nhật").
+			WithReason("Failed to find user for update").
 			WithTrace(err)
 	}
 
@@ -233,7 +233,7 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 
 	if err != nil {
 		return nil, common.ErrInternalServerError.
-			WithReason("Lỗi cập nhật thông tin người dùng").
+			WithReason("Failed to update user information").
 			WithTrace(err)
 	}
 
@@ -246,22 +246,22 @@ func (s *userService) DeleteUser(ctx context.Context, idOrPublicID string, hard 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.ErrNotFound.
-				WithReason("Người dùng cần xóa không tồn tại").
+				WithReason("User to delete does not exist").
 				WithDetail("id", idOrPublicID)
 		}
 		return common.ErrInternalServerError.
-			WithReason("Lỗi khi tìm kiếm người dùng").
+			WithReason("Failed to find user").
 			WithTrace(err)
 	}
 
 	parsedID, err := uuid.Parse(user.ID.String())
 	if err != nil {
-		return common.ErrInternalServerError.WithReason("Lỗi định dạng ID người dùng").WithTrace(err)
+		return common.ErrInternalServerError.WithReason("Invalid user ID format").WithTrace(err)
 	}
 
 	if err := s.userRepo.Delete(ctx, nil, parsedID, !hard); err != nil {
 		return common.ErrInternalServerError.
-			WithReason("Lỗi xóa người dùng khỏi hệ thống").
+			WithReason("Failed to delete user from system").
 			WithTrace(err)
 	}
 

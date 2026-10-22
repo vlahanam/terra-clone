@@ -25,7 +25,7 @@ func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) g
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			errResp := common.ErrUnauthorized.
-				WithReason("Thiếu Header Authorization").
+				WithReason("Missing Authorization header").
 				WithDetail("header", "Authorization")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errResp)
 			return
@@ -34,7 +34,7 @@ func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) g
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 			errResp := common.ErrUnauthorized.
-				WithReason("Định dạng Authorization Header không hợp lệ, yêu cầu: Bearer <token>")
+				WithReason("Invalid Authorization header format, expected: Bearer <token>")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errResp)
 			return
 		}
@@ -43,7 +43,7 @@ func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) g
 		claims, err := common.ValidateToken(jwtSecret, tokenString, common.TokenTypeAccess)
 		if err != nil {
 			errResp := common.ErrUnauthorized.
-				WithReason("Token không hợp lệ hoặc đã hết hạn").
+				WithReason("Invalid or expired token").
 				WithTrace(err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errResp)
 			return
@@ -54,7 +54,7 @@ func RequireAuth(jwtSecret string, credRepo repositories.CredentialRepository) g
 			creds, err := credRepo.FindByUserID(c.Request.Context(), claims.UserID)
 			if err != nil || creds == nil || creds.TokenVersion != claims.TokenVersion {
 				errResp := common.ErrUnauthorized.
-					WithReason("Phiên làm việc đã bị thu hồi hoặc đã đổi mật khẩu, vui lòng đăng nhập lại")
+					WithReason("Session has been revoked or password has changed, please log in again")
 				c.AbortWithStatusJSON(http.StatusUnauthorized, errResp)
 				return
 			}

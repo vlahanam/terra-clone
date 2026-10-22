@@ -25,7 +25,7 @@ func (ctrl *UserController) Create(c *gin.Context) {
 	var req dto.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp := common.ErrBadRequest.
-			WithReason("Dữ liệu tạo người dùng không hợp lệ").
+			WithReason("Invalid user creation data").
 			WithTrace(err)
 		c.JSON(http.StatusBadRequest, errResp)
 		return
@@ -46,7 +46,7 @@ func (ctrl *UserController) Create(c *gin.Context) {
 func (ctrl *UserController) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
-		errResp := common.ErrBadRequest.WithReason("Thiếu ID người dùng trong URL")
+		errResp := common.ErrBadRequest.WithReason("User ID is required in URL path")
 		c.JSON(http.StatusBadRequest, errResp)
 		return
 	}
@@ -67,7 +67,7 @@ func (ctrl *UserController) List(c *gin.Context) {
 	var query dto.ListUsersQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		errResp := common.ErrBadRequest.
-			WithReason("Tham số truy vấn danh sách không hợp lệ").
+			WithReason("Invalid list query parameters").
 			WithTrace(err)
 		c.JSON(http.StatusBadRequest, errResp)
 		return
@@ -88,7 +88,7 @@ func (ctrl *UserController) List(c *gin.Context) {
 func (ctrl *UserController) Update(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
-		errResp := common.ErrBadRequest.WithReason("Thiếu ID người dùng trong URL")
+		errResp := common.ErrBadRequest.WithReason("User ID is required in URL path")
 		c.JSON(http.StatusBadRequest, errResp)
 		return
 	}
@@ -96,7 +96,7 @@ func (ctrl *UserController) Update(c *gin.Context) {
 	var req dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp := common.ErrBadRequest.
-			WithReason("Dữ liệu cập nhật người dùng không hợp lệ").
+			WithReason("Invalid user update data").
 			WithTrace(err)
 		c.JSON(http.StatusBadRequest, errResp)
 		return
@@ -117,7 +117,7 @@ func (ctrl *UserController) Update(c *gin.Context) {
 func (ctrl *UserController) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
-		errResp := common.ErrBadRequest.WithReason("Thiếu ID người dùng trong URL")
+		errResp := common.ErrBadRequest.WithReason("User ID is required in URL path")
 		c.JSON(http.StatusBadRequest, errResp)
 		return
 	}

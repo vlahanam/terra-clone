@@ -25,7 +25,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp := common.ErrBadRequest.
-			WithReason("Dữ liệu đăng ký không hợp lệ, vui lòng kiểm tra lại email (đúng định dạng) và mật khẩu (tối thiểu 8 ký tự)").
+			WithReason("Invalid registration data. Please verify email format and password (minimum 8 characters)").
 			WithTrace(err)
 		c.JSON(http.StatusBadRequest, errResp)
 		return
@@ -47,7 +47,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp := common.ErrBadRequest.
-			WithReason("Email và mật khẩu không được để trống").
+			WithReason("Email and password cannot be empty").
 			WithTrace(err)
 		c.JSON(http.StatusBadRequest, errResp)
 		return
@@ -69,7 +69,7 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 	var req dto.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errResp := common.ErrBadRequest.
-			WithReason("Refresh token không được để trống").
+			WithReason("Refresh token cannot be empty").
 			WithTrace(err)
 		c.JSON(http.StatusBadRequest, errResp)
 		return
@@ -90,7 +90,7 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 func (ctrl *AuthController) LogoutAll(c *gin.Context) {
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
-		errResp := common.ErrUnauthorized.WithReason("Phiên làm việc không hợp lệ").WithTrace(err)
+		errResp := common.ErrUnauthorized.WithReason("Invalid session").WithTrace(err)
 		c.JSON(http.StatusUnauthorized, errResp)
 		return
 	}
@@ -111,7 +111,7 @@ func (ctrl *AuthController) LogoutAll(c *gin.Context) {
 func (ctrl *AuthController) GetMe(c *gin.Context) {
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
-		errResp := common.ErrUnauthorized.WithReason("Phiên làm việc không hợp lệ").WithTrace(err)
+		errResp := common.ErrUnauthorized.WithReason("Invalid session").WithTrace(err)
 		c.JSON(http.StatusUnauthorized, errResp)
 		return
 	}
