@@ -94,6 +94,17 @@ flowchart TD
 - [x] **Khai Thác Cấu Hình Động (JSONB Preferences)**:
   - Lưu trữ và cập nhật cấu hình cá nhân hóa tùy biến (`preferences`) trong PostgreSQL JSONB.
   - Tối ưu hóa truy vấn JSON tốc độ cao bằng chỉ mục GIN (`idx_user_profiles_preferences`).
+- [x] **Quản Trị Doanh Nghiệp & Tổ Chức (Company Management APIs)**:
+  - `POST /api/v1/companies`: Tạo công ty mới (sinh định danh `public_id` tiền tố `cmp_`, kiểm tra tính duy nhất của mã `code` và mã số thuế `tax_id`, liên kết người dùng tạo làm `owner_id`).
+  - `GET /api/v1/companies/:id`: Trích xuất thông tin chi tiết công ty theo ID (UUIDv7), `public_id` hoặc mã `code`.
+  - `GET /api/v1/companies`: Danh sách công ty hỗ trợ phân trang Cursor (`UUIDv7`), lọc trạng thái (`status`), lọc theo chủ sở hữu (`owner_id`) và tìm kiếm đa trường (`search`).
+  - `PUT /api/v1/companies/:id`: Cập nhật thông tin doanh nghiệp, thay đổi/xóa chủ sở hữu và cập nhật trường cấu hình linh hoạt `metadata JSONB` (đánh chỉ mục GIN).
+  - `DELETE /api/v1/companies/:id`: Xóa công ty với cơ chế xóa mềm mặc định (`status = 'deleted'`) và xóa cứng (`?hard=true`).
+  - Hoàn thiện bộ kiểm thử đơn vị độc lập cho `CompanyService` tại `server/tests/company_service_test.go` đạt độ bao phủ toàn diện.
+- [x] **Hỗ Trợ Tiêu Chuẩn Đa Quốc Gia (Multi-national & Internationalization)**:
+  - Bổ sung trường thông tin chuẩn ISO cho cá nhân (`country_code`, `nationality`, `timezone`, `locale`, `city`, `state_or_province`, `postal_code`).
+  - Bổ sung trường thông tin chuẩn ISO cho công ty (`country_code`, `timezone`, `currency`, `legal_name`, `city`, `state_or_province`, `postal_code`).
+  - Tối ưu hóa truy vấn lọc danh sách theo quốc gia bằng chỉ mục B-Tree `idx_user_profiles_country_code` và `idx_companies_country_code`.
 - [ ] **Tải Lên Ảnh Đại Diện (Avatar Upload Pipeline - Kế hoạch giai đoạn sau)**:
   - Tích hợp giải pháp lưu trữ đối tượng (S3-compatible: AWS S3 hoặc MinIO container).
   - Cung cấp API sinh Presigned URL an toàn để client tải ảnh trực tiếp lên storage.

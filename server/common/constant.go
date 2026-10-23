@@ -4,7 +4,8 @@ import "time"
 
 const (
 	// [VN] Tiền tố tạo publish_id
-	PREFIX_USER = "usr"
+	PREFIX_USER    = "usr"
+	PREFIX_COMPANY = "cmp"
 
 	// [VN] Các loại token JWT và thời hạn hiệu lực
 	JWT_TOKEN_TYPE_ACCESS      = "access"

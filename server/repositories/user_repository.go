@@ -16,7 +16,7 @@ type UserRepository interface {
 	FindByPublicID(ctx context.Context, publicID string) (*models.User, error)
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	FindByIDOrPublicID(ctx context.Context, idOrPublicID string) (*models.User, error)
-	List(ctx context.Context, cursor string, limit int, search string, status string) ([]models.User, string, int64, error)
+	List(ctx context.Context, cursor string, limit int, search string, status string, countryCode string) ([]models.User, string, int64, error)
 	Update(ctx context.Context, tx *gorm.DB, user *models.User) error
 	Delete(ctx context.Context, tx *gorm.DB, id uuid.UUID, soft bool) error
 	GetDB() *gorm.DB
@@ -101,7 +101,7 @@ func (r *userRepository) FindByIDOrPublicID(ctx context.Context, idOrPublicID st
 }
 
 // [VN] List lấy danh sách người dùng hỗ trợ phân trang Cursor và tìm kiếm đa trường
-func (r *userRepository) List(ctx context.Context, cursor string, limit int, search string, status string) ([]models.User, string, int64, error) {
+func (r *userRepository) List(ctx context.Context, cursor string, limit int, search string, status string, countryCode string) ([]models.User, string, int64, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
@@ -113,6 +113,10 @@ func (r *userRepository) List(ctx context.Context, cursor string, limit int, sea
 	} else {
 		// [VN] Mặc định không hiển thị tài khoản đã xóa nếu không chỉ định rõ
 		query = query.Where("status != ?", models.UserStatusDeleted)
+	}
+
+	if countryCode != "" {
+		query = query.Where("id IN (SELECT user_id FROM user_profiles WHERE country_code = ?)", strings.TrimSpace(countryCode))
 	}
 
 	if search != "" {

@@ -1,0 +1,22 @@
+info:
+  name: delete company
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{DOMAIN}}/api/v1/companies/:id"
+  params:
+    - name: id
+      value: usr_0e88b189d3e7b8f3
+      type: path
+  auth:
+    type: bearer
+    token: "{{access_token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

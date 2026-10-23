@@ -1,0 +1,22 @@
+info:
+  name: update company
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{DOMAIN}}/api/v1/companies/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+  auth:
+    type: bearer
+    token: "{{access_token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
