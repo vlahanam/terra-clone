@@ -62,8 +62,8 @@ func (m *MockUserRepository) FindByIDOrPublicID(ctx context.Context, idOrPublicI
 }
 
 // [VN] List giả lập truy vấn danh sách người dùng có hỗ trợ phân trang cursor
-func (m *MockUserRepository) List(ctx context.Context, cursor string, limit int, search string, status string) ([]models.User, string, int64, error) {
-	args := m.Called(ctx, cursor, limit, search, status)
+func (m *MockUserRepository) List(ctx context.Context, cursor string, limit int, search string, status string, countryCode string) ([]models.User, string, int64, error) {
+	args := m.Called(ctx, cursor, limit, search, status, countryCode)
 	var users []models.User
 	if args.Get(0) != nil {
 		users = args.Get(0).([]models.User)
@@ -169,6 +169,101 @@ func (m *MockProfileRepository) Update(ctx context.Context, tx *gorm.DB, profile
 func (m *MockProfileRepository) Upsert(ctx context.Context, tx *gorm.DB, profile *models.UserProfile) error {
 	args := m.Called(ctx, tx, profile)
 	return args.Error(0)
+}
+
+// [VN] MockCompanyRepository giả lập interface CompanyRepository phục vụ kiểm thử đơn vị
+type MockCompanyRepository struct {
+	mock.Mock
+}
+
+// [VN] Create giả lập thao tác lưu công ty mới vào CSDL
+func (m *MockCompanyRepository) Create(ctx context.Context, tx *gorm.DB, company *models.Company) error {
+	args := m.Called(ctx, tx, company)
+	return args.Error(0)
+}
+
+// [VN] FindByID giả lập tìm kiếm công ty theo UUID
+func (m *MockCompanyRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.Company, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Company), args.Error(1)
+}
+
+// [VN] FindByPublicID giả lập tìm kiếm công ty theo public_id
+func (m *MockCompanyRepository) FindByPublicID(ctx context.Context, publicID string) (*models.Company, error) {
+	args := m.Called(ctx, publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Company), args.Error(1)
+}
+
+// [VN] FindByCode giả lập tìm kiếm công ty theo mã code
+func (m *MockCompanyRepository) FindByCode(ctx context.Context, code string) (*models.Company, error) {
+	args := m.Called(ctx, code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Company), args.Error(1)
+}
+
+// [VN] FindByTaxID giả lập tìm kiếm công ty theo mã số thuế
+func (m *MockCompanyRepository) FindByTaxID(ctx context.Context, taxID string) (*models.Company, error) {
+	args := m.Called(ctx, taxID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Company), args.Error(1)
+}
+
+// [VN] FindByIDOrPublicIDOrCode giả lập tra cứu công ty linh hoạt theo UUID, PublicID hoặc Code
+func (m *MockCompanyRepository) FindByIDOrPublicIDOrCode(ctx context.Context, identifier string) (*models.Company, error) {
+	args := m.Called(ctx, identifier)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Company), args.Error(1)
+}
+
+// [VN] List giả lập truy vấn danh sách công ty hỗ trợ phân trang cursor
+func (m *MockCompanyRepository) List(
+	ctx context.Context,
+	cursor string,
+	limit int,
+	search string,
+	status string,
+	ownerID *uuid.UUID,
+	countryCode string,
+) ([]models.Company, string, int64, error) {
+	args := m.Called(ctx, cursor, limit, search, status, ownerID, countryCode)
+	var companies []models.Company
+	if args.Get(0) != nil {
+		companies = args.Get(0).([]models.Company)
+	}
+	return companies, args.String(1), args.Get(2).(int64), args.Error(3)
+}
+
+// [VN] Update giả lập cập nhật thông tin công ty
+func (m *MockCompanyRepository) Update(ctx context.Context, tx *gorm.DB, company *models.Company) error {
+	args := m.Called(ctx, tx, company)
+	return args.Error(0)
+}
+
+// [VN] Delete giả lập xóa mềm hoặc xóa cứng công ty
+func (m *MockCompanyRepository) Delete(ctx context.Context, tx *gorm.DB, id uuid.UUID, soft bool) error {
+	args := m.Called(ctx, tx, id, soft)
+	return args.Error(0)
+}
+
+// [VN] GetDB trả về con trỏ gorm.DB giả lập
+func (m *MockCompanyRepository) GetDB() *gorm.DB {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*gorm.DB)
 }
 
 // [VN] newMockGormDB khởi tạo đối tượng gorm.DB giả lập thông qua sqlmock phục vụ kiểm thử Transaction

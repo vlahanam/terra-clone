@@ -51,15 +51,22 @@ func (j *JSONMap) Scan(value interface{}) error {
 
 // [VN] UserProfile là entity đại diện cho bảng user_profiles lưu thông tin mở rộng của người dùng
 type UserProfile struct {
-	UserID      uuid.UUID `gorm:"column:user_id;primaryKey" json:"user_id"`
-	DateOfBirth *string   `gorm:"column:date_of_birth" json:"date_of_birth,omitempty"`
-	Gender      *string   `gorm:"column:gender" json:"gender,omitempty"`
-	PhoneNumber *string   `gorm:"column:phone_number" json:"phone_number,omitempty"`
-	Address     *string   `gorm:"column:address" json:"address,omitempty"`
-	Preferences JSONMap   `gorm:"column:preferences" json:"preferences"`
-	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
-	User        *User     `gorm:"foreignKey:UserID;references:ID" json:"-"`
+	UserID          uuid.UUID `gorm:"column:user_id;primaryKey" json:"user_id"`
+	DateOfBirth     *string   `gorm:"column:date_of_birth" json:"date_of_birth,omitempty"`
+	Gender          *string   `gorm:"column:gender" json:"gender,omitempty"`
+	PhoneNumber     *string   `gorm:"column:phone_number" json:"phone_number,omitempty"`
+	Address         *string   `gorm:"column:address" json:"address,omitempty"`
+	CountryCode     *string   `gorm:"column:country_code" json:"country_code,omitempty"`
+	Nationality     *string   `gorm:"column:nationality" json:"nationality,omitempty"`
+	Timezone        *string   `gorm:"column:timezone" json:"timezone,omitempty"`
+	Locale          *string   `gorm:"column:locale" json:"locale,omitempty"`
+	City            *string   `gorm:"column:city" json:"city,omitempty"`
+	StateOrProvince *string   `gorm:"column:state_or_province" json:"state_or_province,omitempty"`
+	PostalCode      *string   `gorm:"column:postal_code" json:"postal_code,omitempty"`
+	Preferences     JSONMap   `gorm:"column:preferences" json:"preferences"`
+	CreatedAt       time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt       time.Time `gorm:"column:updated_at" json:"updated_at"`
+	User            *User     `gorm:"foreignKey:UserID;references:ID" json:"-"`
 }
 
 // [VN] TableName chỉ định tên bảng CSDL tương ứng với model UserProfile

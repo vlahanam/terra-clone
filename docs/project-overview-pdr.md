@@ -56,14 +56,23 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
   - Quản lý phiên qua `token_version`. Khi người dùng đổi mật khẩu hoặc thực hiện "Đăng xuất khỏi tất cả thiết bị", hệ thống tăng giá trị `token_version` để lập tức vô hiệu hóa toàn bộ JWT token cũ.
 
 ### 4.2. Phân hệ Hồ sơ & Cá nhân hóa (User Profiles & Preferences)
-- **FR-05 (Hồ sơ người dùng)**:
+- **FR-05 (Hồ sơ người dùng & Tiêu chuẩn Đa quốc gia)**:
   - Quản lý ngày sinh, giới tính, số điện thoại, địa chỉ theo bảng [`user_profiles`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000003_user_profiles_table.up.sql#L1-L10).
   - Khóa ngoại `user_id` liên kết `ON DELETE CASCADE` với bảng `users`.
+  - Hỗ trợ đầy đủ các trường thông tin chuẩn hóa đa quốc gia: mã quốc gia theo ISO 3166-1 alpha-2 (`country_code`), quốc tịch (`nationality`), múi giờ IANA (`timezone`), định dạng ngôn ngữ địa phương BCP 47 (`locale`), thành phố (`city`), tỉnh/bang (`state_or_province`) và mã bưu chính (`postal_code`) theo [`000005_multinational_support.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000005_multinational_support.up.sql).
 - **FR-06 (Tùy chọn linh hoạt - JSONB Preferences)**:
   - Lưu trữ theme, notification settings, language preferences dưới cột `preferences JSONB`.
   - Hỗ trợ truy vấn JSON tốc độ cao bằng chỉ mục GIN (`idx_user_profiles_preferences`).
 
-### 4.3. Phân hệ Gateway & Điều hướng Lưu lượng (Gateway & Routing)
+### 4.3. Phân hệ Quản Lý Doanh Nghiệp & Tổ Chức (Company Management)
+- **FR-09 (Quản lý công ty & Tổ chức Đa quốc gia B2B)**:
+  - Cho phép tạo mới, tra cứu chi tiết, cập nhật và quản lý vòng đời công ty/tổ chức.
+  - Mỗi công ty sở hữu khóa chính `UUIDv7`, định danh công khai duy nhất `public_id` (tiền tố `cmp_`), mã doanh nghiệp duy nhất `code` (chuẩn hóa in hoa), mã số thuế `tax_id`, thông tin liên hệ (email, phone, address, website, logo), trạng thái (`status`: `active`, `inactive`, `suspended`, `deleted`), và chủ sở hữu (`owner_id` liên kết `users(id)`).
+  - Tích hợp tiêu chuẩn doanh nghiệp quốc tế: mã quốc gia đăng ký kinh doanh ISO 3166-1 alpha-2 (`country_code`), múi giờ IANA (`timezone`), tiền tệ chính ISO 4217 (`currency`), tên pháp lý quốc tế (`legal_name`), thành phố (`city`), bang/tỉnh (`state_or_province`), mã bưu chính (`postal_code`).
+  - Cấu hình mở rộng và tùy biến qua trường `metadata JSONB` được đánh chỉ mục GIN (`idx_companies_metadata`).
+  - Hỗ trợ phân trang danh sách con trỏ hiệu năng cao theo `UUIDv7`, tìm kiếm đa trường (`name`, `code`, `tax_id`, `email`), lọc theo quốc gia (`country_code`) và cơ chế xóa mềm / xóa cứng linh hoạt.
+
+### 4.4. Phân hệ Gateway & Điều hướng Lưu lượng (Gateway & Routing)
 - **FR-07 (Health Check & Giám sát sống còn)**:
   - Cung cấp endpoint [`GET /healthz`](file:///home/wsl-admin/projects/terra-clone/nginx/conf.d/default.conf#L10-L14) trên Nginx trả về `200 OK` để các load balancer kiểm tra trạng thái container.
   - Cung cấp endpoint [`GET /ping`](file:///home/wsl-admin/projects/terra-clone/server/internal/router.go#L19-L23) (hoặc `/api/ping` qua Gateway) để kiểm tra trạng thái hoạt động của Go Server Engine.
@@ -100,5 +109,7 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
 | **FR-04** | Thu hồi token qua version | Go Middleware & Auth | [`000002_user_credentials_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000002_user_credentials_table.up.sql) |
 | **FR-05, 06** | Hồ sơ người dùng & JSONB Preferences | Go Server / Postgres | [`000003_user_profiles_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000003_user_profiles_table.up.sql) |
 | **FR-07, 08** | Reverse proxy, Healthcheck & HMR | Nginx Gateway | [`nginx.conf`](file:///home/wsl-admin/projects/terra-clone/nginx/nginx.conf), [`default.conf`](file:///home/wsl-admin/projects/terra-clone/nginx/conf.d/default.conf) |
+| **FR-09** | Quản lý công ty, mã code, metadata JSONB, owner | Go Company Service / Postgres | [`000004_companies_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000004_companies_table.up.sql) |
+| **FR-05, 09 (Mở rộng)** | Hỗ trợ đa quốc gia (ISO Country, Currency, Timezone, Locale) | Go Server / Postgres | [`000005_multinational_support.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000005_multinational_support.up.sql) |
 | **NFR-03** | Bảo mật Container Production | Dockerfile Production | [`Dockerfile.product`](file:///home/wsl-admin/projects/terra-clone/server/Dockerfile.product) |
 | **NFR-06, 07** | Structured Logging & Xoay log | Logger Middleware | [`logger.go`](file:///home/wsl-admin/projects/terra-clone/server/internal/logger.go), [`middleware/logger.go`](file:///home/wsl-admin/projects/terra-clone/server/middleware/logger.go) |

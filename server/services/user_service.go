@@ -92,12 +92,19 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 		}
 
 		profile := &models.UserProfile{
-			UserID:      newUser.ID,
-			DateOfBirth: req.DateOfBirth,
-			Gender:      req.Gender,
-			PhoneNumber: req.PhoneNumber,
-			Address:     req.Address,
-			Preferences: models.JSONMap{},
+			UserID:          newUser.ID,
+			DateOfBirth:     req.DateOfBirth,
+			Gender:          req.Gender,
+			PhoneNumber:     req.PhoneNumber,
+			Address:         req.Address,
+			CountryCode:     req.CountryCode,
+			Nationality:     req.Nationality,
+			Timezone:        req.Timezone,
+			Locale:          req.Locale,
+			City:            req.City,
+			StateOrProvince: req.StateOrProvince,
+			PostalCode:      req.PostalCode,
+			Preferences:     models.JSONMap{},
 		}
 		if req.Preferences != nil {
 			profile.Preferences = req.Preferences
@@ -139,7 +146,7 @@ func (s *userService) GetUserByID(ctx context.Context, idOrPublicID string) (*dt
 
 // [VN] ListUsers lấy danh sách người dùng theo điều kiện tìm kiếm, lọc trạng thái và phân trang cursor
 func (s *userService) ListUsers(ctx context.Context, query *dto.ListUsersQuery) ([]dto.UserResponse, *common.Paging, error) {
-	users, nextCursor, total, err := s.userRepo.List(ctx, query.Cursor, query.Limit, query.Search, query.Status)
+	users, nextCursor, total, err := s.userRepo.List(ctx, query.Cursor, query.Limit, query.Search, query.Status, query.CountryCode)
 	if err != nil {
 		return nil, nil, common.ErrInternalServerError.
 			WithReason("Failed to retrieve user list").
@@ -194,7 +201,8 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 
 		// [VN] Cập nhật profile nếu có các trường hồ sơ
 		hasProfileUpdate := req.DateOfBirth != nil || req.Gender != nil || req.PhoneNumber != nil ||
-			req.Address != nil || req.Preferences != nil
+			req.Address != nil || req.Preferences != nil || req.CountryCode != nil || req.Nationality != nil ||
+			req.Timezone != nil || req.Locale != nil || req.City != nil || req.StateOrProvince != nil || req.PostalCode != nil
 
 		if hasProfileUpdate {
 			profile := user.Profile
@@ -216,6 +224,27 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 			}
 			if req.Address != nil {
 				profile.Address = req.Address
+			}
+			if req.CountryCode != nil {
+				profile.CountryCode = req.CountryCode
+			}
+			if req.Nationality != nil {
+				profile.Nationality = req.Nationality
+			}
+			if req.Timezone != nil {
+				profile.Timezone = req.Timezone
+			}
+			if req.Locale != nil {
+				profile.Locale = req.Locale
+			}
+			if req.City != nil {
+				profile.City = req.City
+			}
+			if req.StateOrProvince != nil {
+				profile.StateOrProvince = req.StateOrProvince
+			}
+			if req.PostalCode != nil {
+				profile.PostalCode = req.PostalCode
 			}
 			if req.Preferences != nil {
 				profile.Preferences = req.Preferences

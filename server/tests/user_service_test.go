@@ -32,16 +32,30 @@ func TestUserService_CreateUser(t *testing.T) {
 		dob := "1995-05-20"
 		gender := "male"
 		address := "123 Terra Street"
+		countryCode := "VN"
+		nationality := "Vietnamese"
+		timezone := "Asia/Ho_Chi_Minh"
+		locale := "vi-VN"
+		city := "Hanoi"
+		state := "Hanoi"
+		postalCode := "100000"
 
 		req := &dto.CreateUserRequest{
-			Email:       "create_user@example.com",
-			Password:    "SecureAdminPass123!",
-			FullName:    "Created User",
-			PhoneNumber: &phone,
-			DateOfBirth: &dob,
-			Gender:      &gender,
-			Address:     &address,
-			Status:      models.UserStatusActive,
+			Email:           "create_user@example.com",
+			Password:        "SecureAdminPass123!",
+			FullName:        "Created User",
+			PhoneNumber:     &phone,
+			DateOfBirth:     &dob,
+			Gender:          &gender,
+			Address:         &address,
+			CountryCode:     &countryCode,
+			Nationality:     &nationality,
+			Timezone:        &timezone,
+			Locale:          &locale,
+			City:            &city,
+			StateOrProvince: &state,
+			PostalCode:      &postalCode,
+			Status:          models.UserStatusActive,
 		}
 
 		mockUserRepo.On("FindByEmail", ctx, req.Email).Return(nil, gorm.ErrRecordNotFound)
@@ -53,7 +67,9 @@ func TestUserService_CreateUser(t *testing.T) {
 		})).Return(nil)
 
 		mockCredRepo.On("Create", ctx, mock.AnythingOfType("*gorm.DB"), mock.AnythingOfType("*models.UserCredentials")).Return(nil)
-		mockProfileRepo.On("Create", ctx, mock.AnythingOfType("*gorm.DB"), mock.AnythingOfType("*models.UserProfile")).Return(nil)
+		mockProfileRepo.On("Create", ctx, mock.AnythingOfType("*gorm.DB"), mock.MatchedBy(func(p *models.UserProfile) bool {
+			return p.CountryCode != nil && *p.CountryCode == "VN" && p.Nationality != nil && *p.Nationality == "Vietnamese"
+		})).Return(nil)
 		sqlMock.ExpectCommit()
 
 		resp, err := service.CreateUser(ctx, req)
@@ -64,6 +80,10 @@ func TestUserService_CreateUser(t *testing.T) {
 		assert.Equal(t, models.UserStatusActive, resp.Status, "status should be active")
 		require.NotNil(t, resp.Profile, "profile response should not be nil")
 		assert.Equal(t, req.PhoneNumber, resp.Profile.PhoneNumber, "phone number should match")
+		assert.Equal(t, &countryCode, resp.Profile.CountryCode, "country code should match")
+		assert.Equal(t, &nationality, resp.Profile.Nationality, "nationality should match")
+		assert.Equal(t, &timezone, resp.Profile.Timezone, "timezone should match")
+		assert.Equal(t, &city, resp.Profile.City, "city should match")
 
 		mockUserRepo.AssertExpectations(t)
 		mockCredRepo.AssertExpectations(t)
@@ -248,7 +268,7 @@ func TestUserService_ListUsers(t *testing.T) {
 		nextCursor := "018f2a1c-4b12-7e90-a321-2e841a1239bc"
 		total := int64(25)
 
-		mockUserRepo.On("List", ctx, query.Cursor, query.Limit, query.Search, query.Status).
+		mockUserRepo.On("List", ctx, query.Cursor, query.Limit, query.Search, query.Status, "").
 			Return(mockUsers, nextCursor, total, nil)
 
 		users, paging, err := service.ListUsers(ctx, query)
@@ -262,6 +282,40 @@ func TestUserService_ListUsers(t *testing.T) {
 		mockUserRepo.AssertExpectations(t)
 	})
 
+	t.Run("Success_WithCountryFilter", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockCredRepo := new(MockCredentialRepository)
+		mockProfileRepo := new(MockProfileRepository)
+
+		service := services.NewUserService(mockUserRepo, mockCredRepo, mockProfileRepo)
+
+		query := &dto.ListUsersQuery{
+			CountryCode: "VN",
+			Limit:       10,
+		}
+
+		vnUser := models.User{
+			ID:       uuid.New(),
+			PublicID: "usr_vn",
+			Email:    "vn@example.com",
+			FullName: "VN User",
+			Profile: &models.UserProfile{
+				CountryCode: func(s string) *string { return &s }("VN"),
+			},
+		}
+
+		mockUserRepo.On("List", ctx, "", 10, "", "", "VN").
+			Return([]models.User{vnUser}, "", int64(1), nil)
+
+		users, paging, err := service.ListUsers(ctx, query)
+		require.NoError(t, err)
+		require.Len(t, users, 1)
+		assert.Equal(t, "usr_vn", users[0].PublicID)
+		assert.Equal(t, int64(1), paging.Total)
+
+		mockUserRepo.AssertExpectations(t)
+	})
+
 	t.Run("DatabaseError", func(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockCredRepo := new(MockCredentialRepository)
@@ -270,7 +324,7 @@ func TestUserService_ListUsers(t *testing.T) {
 		service := services.NewUserService(mockUserRepo, mockCredRepo, mockProfileRepo)
 
 		query := &dto.ListUsersQuery{Limit: 20}
-		mockUserRepo.On("List", ctx, query.Cursor, query.Limit, query.Search, query.Status).
+		mockUserRepo.On("List", ctx, query.Cursor, query.Limit, query.Search, query.Status, "").
 			Return(nil, "", int64(0), errors.New("db error"))
 
 		users, paging, err := service.ListUsers(ctx, query)
@@ -316,9 +370,13 @@ func TestUserService_UpdateUser(t *testing.T) {
 		newFullName := "Updated Name"
 		newPhone := "0987654321"
 		newStatus := models.UserStatusInactive
+		newCountry := "SG"
+		newCity := "Singapore"
 		req := &dto.UpdateUserRequest{
 			FullName:    &newFullName,
 			PhoneNumber: &newPhone,
+			CountryCode: &newCountry,
+			City:        &newCity,
 			Status:      &newStatus,
 		}
 
@@ -331,7 +389,9 @@ func TestUserService_UpdateUser(t *testing.T) {
 		})).Return(nil)
 
 		mockProfileRepo.On("Upsert", ctx, mock.AnythingOfType("*gorm.DB"), mock.MatchedBy(func(p *models.UserProfile) bool {
-			return p.PhoneNumber != nil && *p.PhoneNumber == newPhone
+			return p.PhoneNumber != nil && *p.PhoneNumber == newPhone &&
+				p.CountryCode != nil && *p.CountryCode == newCountry &&
+				p.City != nil && *p.City == newCity
 		})).Return(nil)
 		sqlMock.ExpectCommit()
 
@@ -340,6 +400,9 @@ func TestUserService_UpdateUser(t *testing.T) {
 		require.NotNil(t, resp, "response should not be nil")
 		assert.Equal(t, newFullName, resp.FullName, "full name should be updated")
 		assert.Equal(t, newStatus, resp.Status, "status should be updated")
+		require.NotNil(t, resp.Profile, "profile should not be nil")
+		assert.Equal(t, &newCountry, resp.Profile.CountryCode, "country code should be updated")
+		assert.Equal(t, &newCity, resp.Profile.City, "city should be updated")
 
 		mockUserRepo.AssertExpectations(t)
 		mockProfileRepo.AssertExpectations(t)

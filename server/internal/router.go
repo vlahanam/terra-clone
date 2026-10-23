@@ -38,14 +38,17 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 	userRepo := repositories.NewUserRepository(db)
 	credRepo := repositories.NewCredentialRepository(db)
 	profileRepo := repositories.NewProfileRepository(db)
+	companyRepo := repositories.NewCompanyRepository(db)
 
 	// [VN] Khởi tạo tầng Services qua Dependency Injection
 	authService := services.NewAuthService(userRepo, credRepo, profileRepo, c.JWTSecret)
 	userService := services.NewUserService(userRepo, credRepo, profileRepo)
+	companyService := services.NewCompanyService(companyRepo, userRepo)
 
 	// [VN] Khởi tạo tầng Controllers qua Dependency Injection
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
+	companyController := controllers.NewCompanyController(companyService)
 
 	// [VN] Khởi tạo Middleware xác thực JWT
 	authMiddleware := middleware.RequireAuth(c.JWTSecret, credRepo)
@@ -72,6 +75,16 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 			users.GET("/:id", userController.GetByID)
 			users.PUT("/:id", userController.Update)
 			users.DELETE("/:id", userController.Delete)
+		}
+
+		// [VN] Nhóm route quản lý công ty: /api/v1/companies
+		companies := v1.Group("/companies")
+		{
+			companies.GET("", companyController.List)
+			companies.GET("/:id", companyController.GetByID)
+			companies.POST("", authMiddleware, companyController.Create)
+			companies.PUT("/:id", authMiddleware, companyController.Update)
+			companies.DELETE("/:id", authMiddleware, companyController.Delete)
 		}
 	}
 

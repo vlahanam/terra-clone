@@ -180,6 +180,7 @@ Hệ thống sử dụng **PostgreSQL 18** với lược đồ được phiên b
 erDiagram
     users ||--|| user_credentials : "has (1:1)"
     users ||--|| user_profiles : "has (1:1)"
+    users ||--o{ companies : "owns (1:N)"
 
     users {
         uuid id PK "UUIDv7 (Tự động sắp xếp thời gian)"
@@ -209,7 +210,40 @@ erDiagram
         varchar gender "Giới tính"
         varchar phone_number "Số điện thoại"
         text address "Địa chỉ chi tiết"
+        varchar country_code "Mã quốc gia ISO 3166-1 alpha-2 (Indexed)"
+        varchar nationality "Quốc tịch"
+        varchar timezone "Múi giờ IANA"
+        varchar locale "Định dạng ngôn ngữ BCP 47"
+        varchar city "Thành phố"
+        varchar state_or_province "Tỉnh / Bang"
+        varchar postal_code "Mã bưu chính"
         jsonb preferences "Cấu hình tùy chọn (GIN Indexed)"
+        timestamptz created_at "Thời điểm tạo"
+        timestamptz updated_at "Thời điểm sửa"
+    }
+
+    companies {
+        uuid id PK "UUIDv7 (Tự động sắp xếp thời gian)"
+        varchar public_id UK "Mã định danh công khai (tiền tố cmp_)"
+        varchar code UK "Mã doanh nghiệp duy nhất (In hoa, Indexed)"
+        varchar name "Tên công ty / tổ chức"
+        varchar legal_name "Tên pháp lý quốc tế"
+        varchar tax_id "Mã số thuế doanh nghiệp (Indexed)"
+        varchar country_code "Mã quốc gia đăng ký ISO 3166-1 (Indexed)"
+        varchar currency "Tiền tệ chính ISO 4217"
+        varchar timezone "Múi giờ IANA"
+        varchar email "Email liên hệ chính thức"
+        varchar phone "Số điện thoại"
+        text address "Địa chỉ trụ sở"
+        varchar city "Thành phố trụ sở"
+        varchar state_or_province "Tỉnh / Bang"
+        varchar postal_code "Mã bưu chính"
+        varchar website "Trang thông tin điện tử"
+        text logo_url "Đường dẫn logo"
+        text description "Mô tả công ty"
+        varchar status "active, inactive, suspended, deleted"
+        uuid owner_id FK "Tham chiếu users(id) ON DELETE SET NULL"
+        jsonb metadata "Cấu hình tùy biến mở rộng (GIN Indexed)"
         timestamptz created_at "Thời điểm tạo"
         timestamptz updated_at "Thời điểm sửa"
     }

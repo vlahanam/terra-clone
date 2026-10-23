@@ -8,45 +8,67 @@ import (
 
 // [VN] CreateUserRequest định nghĩa dữ liệu đầu vào khi tạo mới người dùng
 type CreateUserRequest struct {
-	Email       string                 `json:"email" binding:"required,email"`
-	Password    string                 `json:"password" binding:"required,min=8"`
-	FullName    string                 `json:"full_name" binding:"required"`
-	AvatarURL   *string                `json:"avatar_url,omitempty"`
-	Status      string                 `json:"status,omitempty"`
-	PhoneNumber *string                `json:"phone_number,omitempty"`
-	DateOfBirth *string                `json:"date_of_birth,omitempty"`
-	Gender      *string                `json:"gender,omitempty"`
-	Address     *string                `json:"address,omitempty"`
-	Preferences map[string]interface{} `json:"preferences,omitempty"`
+	Email           string                 `json:"email" binding:"required,email"`
+	Password        string                 `json:"password" binding:"required,min=8"`
+	FullName        string                 `json:"full_name" binding:"required"`
+	AvatarURL       *string                `json:"avatar_url,omitempty"`
+	Status          string                 `json:"status,omitempty"`
+	PhoneNumber     *string                `json:"phone_number,omitempty"`
+	DateOfBirth     *string                `json:"date_of_birth,omitempty"`
+	Gender          *string                `json:"gender,omitempty"`
+	Address         *string                `json:"address,omitempty"`
+	CountryCode     *string                `json:"country_code,omitempty"`
+	Nationality     *string                `json:"nationality,omitempty"`
+	Timezone        *string                `json:"timezone,omitempty"`
+	Locale          *string                `json:"locale,omitempty"`
+	City            *string                `json:"city,omitempty"`
+	StateOrProvince *string                `json:"state_or_province,omitempty"`
+	PostalCode      *string                `json:"postal_code,omitempty"`
+	Preferences     map[string]interface{} `json:"preferences,omitempty"`
 }
 
 // [VN] UpdateUserRequest định nghĩa dữ liệu cập nhật thông tin người dùng
 type UpdateUserRequest struct {
-	FullName    *string                `json:"full_name,omitempty"`
-	AvatarURL   *string                `json:"avatar_url,omitempty"`
-	Status      *string                `json:"status,omitempty"`
-	DateOfBirth *string                `json:"date_of_birth,omitempty"`
-	Gender      *string                `json:"gender,omitempty"`
-	PhoneNumber *string                `json:"phone_number,omitempty"`
-	Address     *string                `json:"address,omitempty"`
-	Preferences map[string]interface{} `json:"preferences,omitempty"`
+	FullName        *string                `json:"full_name,omitempty"`
+	AvatarURL       *string                `json:"avatar_url,omitempty"`
+	Status          *string                `json:"status,omitempty"`
+	DateOfBirth     *string                `json:"date_of_birth,omitempty"`
+	Gender          *string                `json:"gender,omitempty"`
+	PhoneNumber     *string                `json:"phone_number,omitempty"`
+	Address         *string                `json:"address,omitempty"`
+	CountryCode     *string                `json:"country_code,omitempty"`
+	Nationality     *string                `json:"nationality,omitempty"`
+	Timezone        *string                `json:"timezone,omitempty"`
+	Locale          *string                `json:"locale,omitempty"`
+	City            *string                `json:"city,omitempty"`
+	StateOrProvince *string                `json:"state_or_province,omitempty"`
+	PostalCode      *string                `json:"postal_code,omitempty"`
+	Preferences     map[string]interface{} `json:"preferences,omitempty"`
 }
 
 // [VN] ListUsersQuery định nghĩa tham số truy vấn tìm kiếm và phân trang cursor cho danh sách người dùng
 type ListUsersQuery struct {
-	Cursor string `form:"cursor"`
-	Limit  int    `form:"limit"`
-	Search string `form:"search"`
-	Status string `form:"status"`
+	Cursor      string `form:"cursor"`
+	Limit       int    `form:"limit"`
+	Search      string `form:"search"`
+	Status      string `form:"status"`
+	CountryCode string `form:"country_code"`
 }
 
 // [VN] UserProfileResponse định nghĩa dữ liệu hồ sơ cá nhân trả về cho client
 type UserProfileResponse struct {
-	DateOfBirth *string                `json:"date_of_birth,omitempty"`
-	Gender      *string                `json:"gender,omitempty"`
-	PhoneNumber *string                `json:"phone_number,omitempty"`
-	Address     *string                `json:"address,omitempty"`
-	Preferences map[string]interface{} `json:"preferences,omitempty"`
+	DateOfBirth     *string                `json:"date_of_birth,omitempty"`
+	Gender          *string                `json:"gender,omitempty"`
+	PhoneNumber     *string                `json:"phone_number,omitempty"`
+	Address         *string                `json:"address,omitempty"`
+	CountryCode     *string                `json:"country_code,omitempty"`
+	Nationality     *string                `json:"nationality,omitempty"`
+	Timezone        *string                `json:"timezone,omitempty"`
+	Locale          *string                `json:"locale,omitempty"`
+	City            *string                `json:"city,omitempty"`
+	StateOrProvince *string                `json:"state_or_province,omitempty"`
+	PostalCode      *string                `json:"postal_code,omitempty"`
+	Preferences     map[string]interface{} `json:"preferences,omitempty"`
 }
 
 // [VN] UserResponse định nghĩa thông tin người dùng hoàn chỉnh trả về cho client
@@ -79,11 +101,18 @@ func ToUserResponse(user *models.User) *UserResponse {
 
 	if user.Profile != nil {
 		res.Profile = &UserProfileResponse{
-			DateOfBirth: user.Profile.DateOfBirth,
-			Gender:      user.Profile.Gender,
-			PhoneNumber: user.Profile.PhoneNumber,
-			Address:     user.Profile.Address,
-			Preferences: user.Profile.Preferences,
+			DateOfBirth:     user.Profile.DateOfBirth,
+			Gender:          user.Profile.Gender,
+			PhoneNumber:     user.Profile.PhoneNumber,
+			Address:         user.Profile.Address,
+			CountryCode:     user.Profile.CountryCode,
+			Nationality:     user.Profile.Nationality,
+			Timezone:        user.Profile.Timezone,
+			Locale:          user.Profile.Locale,
+			City:            user.Profile.City,
+			StateOrProvince: user.Profile.StateOrProvince,
+			PostalCode:      user.Profile.PostalCode,
+			Preferences:     user.Profile.Preferences,
 		}
 	}
 
