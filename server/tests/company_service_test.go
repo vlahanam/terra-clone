@@ -2,7 +2,9 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -301,6 +303,14 @@ func TestCompanyService_GetCompanyByID(t *testing.T) {
 		assert.Equal(t, "cmp_123456", resp.ID)
 		assert.Equal(t, "TERRA_HQ", resp.Code)
 
+		// [VN] Kiểm tra JSON serialization đảm bảo trường json:id chứa public_id và không để lộ UUID
+		jsonBytes, err := json.Marshal(resp)
+		require.NoError(t, err)
+		var jsonMap map[string]interface{}
+		require.NoError(t, json.Unmarshal(jsonBytes, &jsonMap))
+		assert.Equal(t, "cmp_123456", jsonMap["id"], "company response json 'id' field must contain public_id")
+		assert.True(t, strings.HasPrefix(jsonMap["id"].(string), "cmp_"), "id field must have cmp_ prefix")
+
 		mockCompanyRepo.AssertExpectations(t)
 	})
 
@@ -370,7 +380,7 @@ func TestCompanyService_ListCompanies(t *testing.T) {
 		}
 
 		mockCompanyRepo.On("List", ctx, "", 10, "", "", (*uuid.UUID)(nil), "").
-			Return([]models.Company{comp1, comp2}, comp2.ID.String(), int64(2), nil)
+			Return([]models.Company{comp1, comp2}, comp2.PublicID, int64(2), nil)
 
 		res, paging, err := service.ListCompanies(ctx, query)
 		require.NoError(t, err, "listing companies should succeed")
@@ -379,7 +389,7 @@ func TestCompanyService_ListCompanies(t *testing.T) {
 		assert.Equal(t, "cmp_bbb", res[1].ID)
 		require.NotNil(t, paging)
 		assert.Equal(t, int64(2), paging.Total)
-		assert.Equal(t, comp2.ID.String(), paging.NextCursor)
+		assert.Equal(t, comp2.PublicID, paging.NextCursor)
 
 		mockCompanyRepo.AssertExpectations(t)
 	})

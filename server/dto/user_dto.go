@@ -71,9 +71,9 @@ type UserProfileResponse struct {
 	Preferences     map[string]interface{} `json:"preferences,omitempty"`
 }
 
-// [VN] UserResponse định nghĩa thông tin người dùng hoàn chỉnh trả về cho client
+// [VN] UserResponse định nghĩa thông tin người dùng hoàn chỉnh trả về cho client (trường ID mang giá trị public_id để bảo mật)
 type UserResponse struct {
-	PublicID  string               `json:"id"`
+	ID        string               `json:"id"`
 	Email     string               `json:"email"`
 	FullName  string               `json:"full_name"`
 	AvatarURL *string              `json:"avatar_url,omitempty"`
@@ -90,7 +90,7 @@ func ToUserResponse(user *models.User) *UserResponse {
 	}
 
 	res := &UserResponse{
-		PublicID:  user.PublicID,
+		ID:        user.PublicID,
 		Email:     user.Email,
 		FullName:  user.FullName,
 		AvatarURL: user.AvatarURL,

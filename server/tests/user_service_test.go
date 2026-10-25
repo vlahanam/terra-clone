@@ -2,7 +2,9 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -183,7 +185,15 @@ func TestUserService_GetUserByID(t *testing.T) {
 		require.NoError(t, err, "get user by id should succeed")
 		require.NotNil(t, resp, "response should not be nil")
 		assert.Equal(t, user.Email, resp.Email, "email should match")
-		assert.Equal(t, user.PublicID, resp.PublicID, "public_id should match")
+		assert.Equal(t, user.PublicID, resp.ID, "id should match user public_id")
+
+		// [VN] Kiểm tra JSON serialization đảm bảo trường json:id chứa public_id và không để lộ UUID
+		jsonBytes, err := json.Marshal(resp)
+		require.NoError(t, err)
+		var jsonMap map[string]interface{}
+		require.NoError(t, json.Unmarshal(jsonBytes, &jsonMap))
+		assert.Equal(t, user.PublicID, jsonMap["id"], "response json 'id' field must contain public_id")
+		assert.True(t, strings.HasPrefix(jsonMap["id"].(string), "usr_"), "id field must have usr_ prefix")
 
 		mockUserRepo.AssertExpectations(t)
 	})
@@ -265,7 +275,7 @@ func TestUserService_ListUsers(t *testing.T) {
 				Status:   models.UserStatusActive,
 			},
 		}
-		nextCursor := "018f2a1c-4b12-7e90-a321-2e841a1239bc"
+		nextCursor := "usr_2"
 		total := int64(25)
 
 		mockUserRepo.On("List", ctx, query.Cursor, query.Limit, query.Search, query.Status, "").
@@ -310,7 +320,7 @@ func TestUserService_ListUsers(t *testing.T) {
 		users, paging, err := service.ListUsers(ctx, query)
 		require.NoError(t, err)
 		require.Len(t, users, 1)
-		assert.Equal(t, "usr_vn", users[0].PublicID)
+		assert.Equal(t, "usr_vn", users[0].ID)
 		assert.Equal(t, int64(1), paging.Total)
 
 		mockUserRepo.AssertExpectations(t)

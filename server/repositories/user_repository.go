@@ -134,6 +134,12 @@ func (r *userRepository) List(ctx context.Context, cursor string, limit int, sea
 	if cursor != "" {
 		if cursorUUID, err := uuid.Parse(cursor); err == nil {
 			dataQuery = dataQuery.Where("id < ?", cursorUUID)
+		} else {
+			// [VN] Tra cứu khóa chính UUID tương ứng từ public_id để làm mốc phân trang con trỏ
+			var cursorUser models.User
+			if err := r.db.WithContext(ctx).Select("id").Where("public_id = ?", cursor).First(&cursorUser).Error; err == nil {
+				dataQuery = dataQuery.Where("id < ?", cursorUser.ID)
+			}
 		}
 	}
 
@@ -144,7 +150,7 @@ func (r *userRepository) List(ctx context.Context, cursor string, limit int, sea
 
 	var nextCursor string
 	if len(users) == limit {
-		nextCursor = users[len(users)-1].ID.String()
+		nextCursor = users[len(users)-1].PublicID
 	}
 
 	return users, nextCursor, total, nil

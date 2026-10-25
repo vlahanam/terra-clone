@@ -72,7 +72,16 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
   - Cấu hình mở rộng và tùy biến qua trường `metadata JSONB` được đánh chỉ mục GIN (`idx_companies_metadata`).
   - Hỗ trợ phân trang danh sách con trỏ hiệu năng cao theo `UUIDv7`, tìm kiếm đa trường (`name`, `code`, `tax_id`, `email`), lọc theo quốc gia (`country_code`) và cơ chế xóa mềm / xóa cứng linh hoạt.
 
-### 4.4. Phân hệ Gateway & Điều hướng Lưu lượng (Gateway & Routing)
+### 4.4. Phân hệ Quản Lý Quan Hệ Người Dùng - Doanh Nghiệp (User Company Association & RBAC)
+- **FR-10 (Quản lý liên kết người dùng và công ty / Membership & RBAC)**:
+  - Cho phép gán người dùng vào doanh nghiệp/tổ chức với các vai trò (`role`: `owner`, `admin`, `member`, `guest`), chức danh (`job_title`), phòng ban (`department`) và trạng thái hoạt động (`status`: `active`, `inactive`, `pending`, `suspended`, `deleted`).
+  - Hỗ trợ lưu trữ cấu hình quyền hạn mở rộng `permissions JSONB` và cấu hình `metadata JSONB` được đánh chỉ mục GIN (`idx_user_companies_permissions`, `idx_user_companies_metadata`).
+  - Ràng buộc duy nhất `uq_user_companies_user_company (user_id, company_id)` bảo đảm một người dùng chỉ tồn tại một liên kết duy nhất với một công ty; tự động kích hoạt lại các liên kết đã bị xóa mềm nếu được yêu cầu gán lại.
+  - Hỗ trợ tra cứu chi tiết qua UUID hoặc `public_id` (tiền tố `ucmp_`), nạp sẵn toàn bộ thông tin đối tượng User và Company.
+  - Hỗ trợ phân trang Cursor hiệu năng cao `UUIDv7`, lọc đa chiều theo `user_id`, `company_id`, `role`, `status` và tìm kiếm đa trường.
+  - Cung cấp các endpoint điều hướng tiện ích: `GET /api/v1/companies/:id/users`, `POST /api/v1/companies/:id/users`, `GET /api/v1/users/:id/companies`.
+
+### 4.5. Phân hệ Gateway & Điều hướng Lưu lượng (Gateway & Routing)
 - **FR-07 (Health Check & Giám sát sống còn)**:
   - Cung cấp endpoint [`GET /healthz`](file:///home/wsl-admin/projects/terra-clone/nginx/conf.d/default.conf#L10-L14) trên Nginx trả về `200 OK` để các load balancer kiểm tra trạng thái container.
   - Cung cấp endpoint [`GET /ping`](file:///home/wsl-admin/projects/terra-clone/server/internal/router.go#L19-L23) (hoặc `/api/ping` qua Gateway) để kiểm tra trạng thái hoạt động của Go Server Engine.
@@ -110,6 +119,7 @@ Xây dựng một hệ sinh thái monorepo/microservices hoàn chỉnh với:
 | **FR-05, 06** | Hồ sơ người dùng & JSONB Preferences | Go Server / Postgres | [`000003_user_profiles_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000003_user_profiles_table.up.sql) |
 | **FR-07, 08** | Reverse proxy, Healthcheck & HMR | Nginx Gateway | [`nginx.conf`](file:///home/wsl-admin/projects/terra-clone/nginx/nginx.conf), [`default.conf`](file:///home/wsl-admin/projects/terra-clone/nginx/conf.d/default.conf) |
 | **FR-09** | Quản lý công ty, mã code, metadata JSONB, owner | Go Company Service / Postgres | [`000004_companies_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000004_companies_table.up.sql) |
+| **FR-10** | Quản lý liên kết người dùng - công ty, phân quyền RBAC | Go User Company Service / Postgres | [`000005_user_companies_table.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000005_user_companies_table.up.sql) |
 | **FR-05, 09 (Mở rộng)** | Hỗ trợ đa quốc gia (ISO Country, Currency, Timezone, Locale) | Go Server / Postgres | [`000005_multinational_support.up.sql`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000005_multinational_support.up.sql) |
 | **NFR-03** | Bảo mật Container Production | Dockerfile Production | [`Dockerfile.product`](file:///home/wsl-admin/projects/terra-clone/server/Dockerfile.product) |
 | **NFR-06, 07** | Structured Logging & Xoay log | Logger Middleware | [`logger.go`](file:///home/wsl-admin/projects/terra-clone/server/internal/logger.go), [`middleware/logger.go`](file:///home/wsl-admin/projects/terra-clone/server/middleware/logger.go) |

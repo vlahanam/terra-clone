@@ -142,39 +142,45 @@ Toàn bộ API thành công phải trả về cấu trúc tuân theo [`common.su
 ```json
 {
   "data": {
-    "id": "018f2a1b-9f3b-7f28-8d54-1b945f3408f1",
+    "id": "usr_018f2a1b9f3b7f28",
     "email": "user@example.com",
     "full_name": "Nguyễn Văn A",
     "status": "active"
   },
   "paging": {
     "total": 1250,
-    "cursor": "018f2a1b-9f3b-7f28-8d54-1b945f3408f1",
-    "next_cursor": "018f2a1c-4b12-7e90-a321-2e841a1239bc"
+    "cursor": "usr_018f2a1b9f3b7f28",
+    "next_cursor": "usr_018f2a1c4b127e90"
   },
   "extra": null
 }
 ```
 
+> [!IMPORTANT]
+> **Quy Chuẩn Bảo Mật Định Danh (Public Identifier Mapping to `id`)**:
+> Trường định danh trong JSON Response được đặt tag `json:"id"` (hoặc `json:"user_id"`, `json:"company_id"` trong bảng liên kết), nhưng **giá trị trả về thực chất luôn là mã định danh công khai (`public_id`)** (ví dụ: `usr_...`, `cmp_...`, `ucmp_...`). Khóa chính UUIDv7 nội bộ tuyệt đối không bao giờ để lộ ra ngoài payload phản hồi (`data`, `paging`, `details`). Phân trang con trỏ `cursor` / `next_cursor` cũng chỉ sử dụng chuỗi `public_id`.
+
 ### 3.3. Chuẩn Hóa Payload Phản Hồi Thất Bại
 Khi có lỗi, API trả về cấu trúc lỗi chi tiết theo [`common.DefaultError`](file:///home/wsl-admin/projects/terra-clone/server/common/error_response.go) (lưu ý: `message` và `reason` luôn sử dụng Tiếng Anh):
 ```json
 {
-  "id": "ERR_NOT_FOUND",
   "code": 404,
   "status": "Not Found",
   "request": "d7ef54b1-ec15-46e6-bccb-524b82c035e6",
   "message": "Requested resource not found",
-  "reason": "User with the specified ID does not exist",
+  "reason": "User with the specified identifier does not exist",
   "details": {
-    "field": "id"
+    "identifier": "usr_unknown"
   }
 }
 ```
 
 ### 3.4. Chiến Lược Phân Trang Con Trỏ (Cursor-Based Pagination)
-- **Cơ chế**: Thay vì sử dụng `LIMIT / OFFSET` gây chậm khi dữ liệu lớn, hệ thống áp dụng con trỏ theo cột `id` kiểu `UUIDv7` kết hợp thời gian:
-  $$\text{WHERE id} < \text{cursor ORDER BY id DESC LIMIT 20}$$
+- **Cơ chế**: Thay vì sử dụng `LIMIT / OFFSET` gây chậm khi dữ liệu lớn, hệ thống áp dụng con trỏ theo cột `id` kiểu `UUIDv7` kết hợp thời gian phía CSDL nhưng **chỉ để lộ `public_id` ra bên ngoài**:
+  - Client gửi `cursor=usr_...` hoặc `cursor=cmp_...`
+  - Repository tự động phân giải `public_id` thành UUID nội bộ và thực thi:
+    $$\text{WHERE id} < \text{cursor\_uuid ORDER BY id DESC LIMIT 20}$$
+  - Phản hồi trả về `next_cursor` là `public_id` của bản ghi cuối cùng trong trang.
 - Struct [`Paging`](file:///home/wsl-admin/projects/terra-clone/server/common/pagination.go#L3-L7) đóng gói các giá trị `total`, `cursor`, `next_cursor`.
 
 ---

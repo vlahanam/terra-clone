@@ -102,29 +102,35 @@ terra-clone/
 │   ├── controllers/              # Tầng tiếp nhận HTTP Request & trả về Response
 │   │   ├── auth_controller.go    # Controller Đăng ký, Đăng nhập, Refresh, Logout-All, Me
 │   │   ├── company_controller.go # Controller CRUD Công ty, phân trang, lọc và tìm kiếm
+│   │   ├── user_company_controller.go# Controller CRUD quan hệ người dùng - công ty, phân quyền RBAC
 │   │   └── user_controller.go    # Controller CRUD User, phân trang, lọc và tìm kiếm
 │   ├── dto/                      # Khối Data Transfer Objects (Request/Response Binding)
 │   │   ├── auth_dto.go           # DTO Register, Login, Refresh, AuthResponse
 │   │   ├── company_dto.go        # DTO CreateCompany, UpdateCompany, ListCompanies, CompanyResponse
+│   │   ├── user_company_dto.go   # DTO CreateUserCompany, UpdateUserCompany, ListUserCompanies, UserCompanyResponse
 │   │   └── user_dto.go           # DTO CreateUser, UpdateUser, ListUsers, UserResponse
 │   ├── models/                   # Entity models tương tác cơ sở dữ liệu qua GORM
 │   │   ├── company.go            # Entity Company (id UUIDv7, public_id, code, metadata JSONMap)
 │   │   ├── credential.go         # Entity UserCredentials (hash, token_version, lock)
 │   │   ├── profile.go            # Entity UserProfile (hồ sơ, preferences JSONMap)
-│   │   └── user.go               # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
+│   │   ├── user.go               # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
+│   │   └── user_company.go       # Entity UserCompany (id UUIDv7 hook BeforeCreate, public_id ucmp_, role, permissions/metadata JSONMap)
 │   ├── services/                 # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
 │   │   ├── auth_service.go       # Logic Auth, transaction 3 bảng, chống brute-force
 │   │   ├── company_service.go    # Logic CRUD Company, chuẩn hóa code, kiểm tra trùng lặp
+│   │   ├── user_company_service.go # Logic CRUD UserCompany, xác thực thực thể, phân quyền, phân trang cursor
 │   │   └── user_service.go       # Logic CRUD User, cursor pagination, soft-delete
-│   ├── tests/                    # Thư mục kiểm thử đơn vị độc lập cho tầng Service (81.7% coverage)
+│   ├── tests/                    # Thư mục kiểm thử đơn vị độc lập cho tầng Service (85.5% coverage)
 │   │   ├── auth_service_test.go  # Unit test toàn diện cho AuthService
 │   │   ├── company_service_test.go # Unit test toàn diện cho CompanyService
 │   │   ├── mock_test.go          # Mock Repositories và helper sqlmock
+│   │   ├── user_company_service_test.go # Unit test toàn diện cho UserCompanyService
 │   │   └── user_service_test.go  # Unit test toàn diện cho UserService
 │   ├── repositories/             # Tầng tương tác truy vấn dữ liệu (Data Access)
 │   │   ├── company_repository.go # Truy vấn companies, tra cứu code/tax_id, phân trang cursor
 │   │   ├── credential_repository.go # Truy vấn credentials, đếm sai pass, tăng token version
 │   │   ├── profile_repository.go # Truy vấn hồ sơ người dùng, upsert JSONB
+│   │   ├── user_company_repository.go# Truy vấn user_companies, lọc đa chiều, phân trang cursor UUIDv7
 │   │   └── user_repository.go    # Truy vấn users, tìm kiếm, phân trang cursor UUIDv7
 │   ├── middleware/               # Tầng middleware xử lý HTTP
 │   │   ├── auth.go               # Middleware RequireAuth kiểm tra JWT & token_version
@@ -135,7 +141,7 @@ terra-clone/
 │   │   ├── 000002_user_credentials_table.up.sql / .down.sql
 │   │   ├── 000003_user_profiles_table.up.sql / .down.sql
 │   │   ├── 000004_companies_table.up.sql / .down.sql
-│   │   └── 000005_multinational_support.up.sql / .down.sql
+│   │   └── 000005_user_companies_table.up.sql / .down.sql
 │   └── logs/
 │       ├── access.log            # Access log chi tiết theo thời gian thực
 │       └── app.log               # Structured log JSON của ứng dụng (slog)
@@ -185,6 +191,14 @@ Mặc định các cổng host được định nghĩa trong file `.env` cấp r
 | **Công ty** | `POST` | `/api/v1/companies` | Tạo công ty mới (sinh `cmp_...`, ràng buộc mã duy nhất `code`, tax_id) | Bearer JWT |
 | **Công ty** | `PUT` | `/api/v1/companies/:id` | Cập nhật thông tin công ty, đổi chủ sở hữu và metadata JSONB | Bearer JWT |
 | **Công ty** | `DELETE` | `/api/v1/companies/:id` | Xóa công ty (mặc định soft-delete `status = 'deleted'`, xóa cứng `?hard=true`) | Bearer JWT |
+| **Quan hệ User-Company** | `GET` | `/api/v1/user-companies` | Danh sách liên kết (Cursor Paging `UUIDv7`, Lọc User/Company/Role/Status, Search) | Public |
+| **Quan hệ User-Company** | `GET` | `/api/v1/user-companies/:id` | Xem chi tiết liên kết theo ID (`UUIDv7`) hoặc `public_id` (`ucmp_...`) | Public |
+| **Quan hệ User-Company** | `POST` | `/api/v1/user-companies` | Gán người dùng vào công ty kèm vai trò, chức danh, phòng ban, quyền hạn | Bearer JWT |
+| **Quan hệ User-Company** | `PUT` | `/api/v1/user-companies/:id` | Cập nhật vai trò, chức danh, phòng ban, trạng thái, quyền hạn liên kết | Bearer JWT |
+| **Quan hệ User-Company** | `DELETE` | `/api/v1/user-companies/:id` | Xóa liên kết (mặc định soft-delete `status = 'deleted'`, xóa cứng `?hard=true`) | Bearer JWT |
+| **Quan hệ User-Company** | `GET` | `/api/v1/companies/:id/users` | Danh sách tất cả thành viên trong công ty chỉ định | Public |
+| **Quan hệ User-Company** | `POST` | `/api/v1/companies/:id/users` | Thêm thành viên vào công ty chỉ định | Bearer JWT |
+| **Quan hệ User-Company** | `GET` | `/api/v1/users/:id/companies` | Danh sách tất cả các công ty mà người dùng tham gia | Public |
 
 ---
 
@@ -199,6 +213,8 @@ erDiagram
     users ||--|| user_credentials : "has"
     users ||--|| user_profiles : "has"
     users ||--o{ companies : "owns"
+    users ||--o{ user_companies : "participates"
+    companies ||--o{ user_companies : "members" 
 
     users {
         uuid id PK "UUIDv7"
@@ -265,12 +281,29 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
     }
+
+    user_companies {
+        uuid id PK "UUIDv7"
+        varchar public_id UK "Mã định danh công khai (tiền tố ucmp_)"
+        uuid user_id FK "Tham chiếu users(id) ON DELETE CASCADE"
+        uuid company_id FK "Tham chiếu companies(id) ON DELETE CASCADE"
+        varchar role "Vai trò: owner, admin, member, guest"
+        varchar job_title "Chức danh công việc"
+        varchar department "Phòng ban"
+        varchar status "Trạng thái: active, inactive, pending, suspended, deleted"
+        jsonb permissions "Quyền hạn chi tiết (GIN Indexed)"
+        jsonb metadata "Cấu hình mở rộng (GIN Indexed)"
+        timestamptz joined_at "Thời điểm gia nhập"
+        timestamptz created_at
+        timestamptz updated_at
+    }
 ```
 
 - **`users`**: Chứa thông tin cốt lõi của tài khoản, sử dụng hàm `uuidv7()` làm khóa chính, trường `public_id` định danh công khai hiển thị cho người dùng, và đánh index cho cột `email` phục vụ đăng nhập.
 - **`user_credentials`**: Chứa thông tin bảo mật, xác thực tài khoản; lưu trữ mật khẩu đã được mã hóa (`password_hash NOT NULL`) phục vụ đăng nhập trực tiếp bằng email (từ bảng `users`) và mật khẩu. Quản lý `token_version` để thu hồi phiên/refresh token và các trường chống brute-force đăng nhập (`failed_login_attempts`, `locked_until`).
 - **`user_profiles`**: Lưu thông tin mở rộng của người dùng; hỗ trợ các trường đa quốc gia (`country_code`, `nationality`, `timezone`, `locale`, `city`, `state_or_province`, `postal_code`) và cột `preferences JSONB` được đánh chỉ mục **GIN** (`idx_user_profiles_preferences`).
 - **`companies`**: Quản lý thông tin doanh nghiệp/tổ chức với khóa chính `UUIDv7`, định danh công khai `public_id` (`cmp_...`), mã duy nhất `code` in hoa, mã số thuế `tax_id`, các trường quốc tế (`country_code`, `timezone`, `currency`, `legal_name`, `city`, `state_or_province`, `postal_code`), liên kết chủ sở hữu `owner_id` tới `users(id)`, và cấu hình tùy biến linh hoạt `metadata JSONB` được đánh chỉ mục **GIN** (`idx_companies_metadata`).
+- **`user_companies`**: Quản lý quan hệ liên kết và phân quyền RBAC giữa người dùng và doanh nghiệp với khóa chính `UUIDv7`, `public_id` (`ucmp_...`), ràng buộc duy nhất `(user_id, company_id)`, vai trò (`owner`, `admin`, `member`, `guest`), chức danh, phòng ban, trạng thái, quyền hạn `permissions JSONB` và cấu hình mở rộng `metadata JSONB` được đánh chỉ mục **GIN** (`idx_user_companies_permissions`, `idx_user_companies_metadata`).
 
 ### 2. Chuỗi kết nối Database Migration (`DB_URL`)
 
@@ -325,15 +358,24 @@ Hệ thống backend được phân chia rõ ràng trách nhiệm giữa các t�
 
 ### 2. Chuẩn hóa Định dạng API Response (`server/common`)
 
+> [!IMPORTANT]
+> **Quy chuẩn Bảo mật Định danh (Public Identifier Masking)**:
+> Toàn bộ các API phản hồi thành công hoặc chi tiết lỗi **tuyệt đối không để lộ khóa chính nội bộ (`id` UUIDv7)**. Mọi thực thể sử dụng tag `json:"id"` (hoặc `json:"user_id"`, `json:"company_id"`), nhưng **giá trị trả về thực chất luôn là mã định danh công khai (`public_id` với tiền tố `usr_`, `cmp_`, `ucmp_`)**, và con trỏ phân trang `cursor` / `next_cursor` chỉ sử dụng `public_id`.
+
 #### Phản hồi Thành công (`SuccessResponse`)
 
 ```json
 {
-  "data": { ... },
+  "data": {
+    "id": "usr_018f2a1b9f3b7f28",
+    "email": "user@example.com",
+    "full_name": "Nguyễn Văn A",
+    "status": "active"
+  },
   "paging": {
     "total": 100,
-    "cursor": "cursor_token_current",
-    "next_cursor": "cursor_token_next"
+    "cursor": "usr_018f2a1b9f3b7f28",
+    "next_cursor": "usr_018f2a1c4b127e90"
   },
   "extra": null
 }

@@ -39,16 +39,19 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 	credRepo := repositories.NewCredentialRepository(db)
 	profileRepo := repositories.NewProfileRepository(db)
 	companyRepo := repositories.NewCompanyRepository(db)
+	userCompanyRepo := repositories.NewUserCompanyRepository(db)
 
 	// [VN] Khởi tạo tầng Services qua Dependency Injection
 	authService := services.NewAuthService(userRepo, credRepo, profileRepo, c.JWTSecret)
 	userService := services.NewUserService(userRepo, credRepo, profileRepo)
 	companyService := services.NewCompanyService(companyRepo, userRepo)
+	userCompanyService := services.NewUserCompanyService(userCompanyRepo, userRepo, companyRepo)
 
 	// [VN] Khởi tạo tầng Controllers qua Dependency Injection
 	authController := controllers.NewAuthController(authService)
 	userController := controllers.NewUserController(userService)
 	companyController := controllers.NewCompanyController(companyService)
+	userCompanyController := controllers.NewUserCompanyController(userCompanyService)
 
 	// [VN] Khởi tạo Middleware xác thực JWT
 	authMiddleware := middleware.RequireAuth(c.JWTSecret, credRepo)
@@ -75,6 +78,7 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 			users.GET("/:id", userController.GetByID)
 			users.PUT("/:id", userController.Update)
 			users.DELETE("/:id", userController.Delete)
+			users.GET("/:id/companies", userCompanyController.List)
 		}
 
 		// [VN] Nhóm route quản lý công ty: /api/v1/companies
@@ -85,6 +89,18 @@ func SetupRouter(c *AppConfig, db *gorm.DB, accessWriter io.Writer) *gin.Engine 
 			companies.POST("", authMiddleware, companyController.Create)
 			companies.PUT("/:id", authMiddleware, companyController.Update)
 			companies.DELETE("/:id", authMiddleware, companyController.Delete)
+			companies.GET("/:id/users", userCompanyController.List)
+			companies.POST("/:id/users", authMiddleware, userCompanyController.Create)
+		}
+
+		// [VN] Nhóm route quản lý quan hệ người dùng và công ty: /api/v1/user-companies
+		userCompanies := v1.Group("/user-companies")
+		{
+			userCompanies.GET("", userCompanyController.List)
+			userCompanies.GET("/:id", userCompanyController.GetByID)
+			userCompanies.POST("", authMiddleware, userCompanyController.Create)
+			userCompanies.PUT("/:id", authMiddleware, userCompanyController.Update)
+			userCompanies.DELETE("/:id", authMiddleware, userCompanyController.Delete)
 		}
 	}
 

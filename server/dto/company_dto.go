@@ -61,7 +61,7 @@ type ListCompaniesQuery struct {
 	CountryCode string `form:"country_code"`
 }
 
-// [VN] CompanyOwnerResponse đóng gói thông tin tóm tắt của chủ sở hữu công ty
+// [VN] CompanyOwnerResponse đóng gói thông tin tóm tắt của chủ sở hữu công ty (trường ID mang giá trị public_id để bảo mật)
 type CompanyOwnerResponse struct {
 	ID        string  `json:"id"`
 	Email     string  `json:"email"`
@@ -69,7 +69,7 @@ type CompanyOwnerResponse struct {
 	AvatarURL *string `json:"avatar_url,omitempty"`
 }
 
-// [VN] CompanyResponse định nghĩa dữ liệu chi tiết của công ty trả về cho client
+// [VN] CompanyResponse định nghĩa dữ liệu chi tiết của công ty trả về cho client (trường ID mang giá trị public_id để bảo mật)
 type CompanyResponse struct {
 	ID              string                 `json:"id"`
 	Code            string                 `json:"code"`

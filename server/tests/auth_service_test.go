@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -58,6 +59,8 @@ func TestAuthService_Register(t *testing.T) {
 		assert.NotEmpty(t, resp.RefreshToken, "refresh token should not be empty")
 		assert.Equal(t, "Bearer", resp.TokenType, "token type should be Bearer")
 		assert.Equal(t, req.Email, resp.User.Email, "email in response should match request")
+		assert.NotEmpty(t, resp.User.ID, "id in response should not be empty")
+		assert.True(t, strings.HasPrefix(resp.User.ID, "usr_"), "id in response should start with usr_ prefix (public id)")
 
 		mockUserRepo.AssertExpectations(t)
 		mockCredRepo.AssertExpectations(t)
@@ -587,6 +590,7 @@ func TestAuthService_GetMe(t *testing.T) {
 		require.NotNil(t, resp, "response should not be nil")
 		assert.Equal(t, user.Email, resp.Email, "email should match")
 		assert.Equal(t, user.FullName, resp.FullName, "fullname should match")
+		assert.Equal(t, user.PublicID, resp.ID, "id in response should match user public_id")
 
 		mockUserRepo.AssertExpectations(t)
 	})

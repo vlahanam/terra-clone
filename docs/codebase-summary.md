@@ -53,11 +53,13 @@ terra-clone/
 │   ├── controllers/                  # Tầng tiếp nhận HTTP Request & trả về Response
 │   │   ├── auth_controller.go        # Controller xử lý Đăng ký, Đăng nhập, Refresh, Logout-All, Me
 │   │   ├── company_controller.go     # Controller xử lý CRUD Công ty, phân trang, lọc và tìm kiếm
+│   │   ├── user_company_controller.go# Controller xử lý CRUD quan hệ người dùng - công ty, vai trò & phân quyền
 │   │   └── user_controller.go        # Controller xử lý CRUD User, phân trang, lọc và tìm kiếm
 │   ├── dto/                          # Khối Data Transfer Objects (Request/Response Binding)
 │   │   ├── auth_dto.go               # DTO RegisterRequest, LoginRequest, RefreshTokenRequest, AuthResponse
-│   │   ├── company_dto.go            # DTO CreateCompanyRequest, UpdateCompanyRequest, ListCompaniesQuery, CompanyResponse
-│   │   └── user_dto.go               # DTO CreateUserRequest, UpdateUserRequest, ListUsersQuery, UserResponse
+│   │   ├── company_dto.go            # DTO CreateCompanyRequest, UpdateCompanyRequest, ListCompaniesQuery, CompanyResponse (trường ID mang public_id với json:"id")
+│   │   ├── user_company_dto.go       # DTO CreateUserCompanyRequest, UpdateUserCompanyRequest, ListUserCompaniesQuery, UserCompanyResponse (các ID mang public_id)
+│   │   └── user_dto.go               # DTO CreateUserRequest, UpdateUserRequest, ListUsersQuery, UserResponse (trường ID mang public_id với json:"id")
 │   ├── internal/                     # Thư viện và logic vận hành nội bộ server
 │   │   ├── app.go                    # Định nghĩa AppConfig struct (kèm JWTSecret)
 │   │   ├── config.go                 # Trình nạp và xác thực biến môi trường (Fail-Fast)
@@ -77,25 +79,29 @@ terra-clone/
 │   │   ├── 000002_user_credentials_table.up.sql / .down.sql
 │   │   ├── 000003_user_profiles_table.up.sql / .down.sql
 │   │   ├── 000004_companies_table.up.sql / .down.sql
-│   │   └── 000005_multinational_support.up.sql / .down.sql
+│   │   └── 000005_user_companies_table.up.sql / .down.sql
 │   ├── models/                       # Entity models tương tác cơ sở dữ liệu qua GORM
 │   │   ├── company.go                # Entity Company (id UUIDv7 hook BeforeCreate, public_id, code, tax_id, metadata JSONMap, trường đa quốc gia)
 │   │   ├── credential.go             # Entity UserCredentials (password_hash, token_version, lock)
 │   │   ├── profile.go                # Entity UserProfile (phone, address, JSONMap preferences, trường đa quốc gia)
-│   │   └── user.go                   # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
+│   │   ├── user.go                   # Entity User (id UUIDv7 hook BeforeCreate, public_id, email, status)
+│   │   └── user_company.go           # Entity UserCompany (id UUIDv7 hook BeforeCreate, public_id ucmp_, role, permissions/metadata JSONMap)
 │   ├── repositories/                 # Tầng tương tác cơ sở dữ liệu (GORM Data Access)
 │   │   ├── company_repository.go     # CRUD Company, tra cứu theo code/public_id/tax_id, phân trang cursor, lọc theo quốc gia
 │   │   ├── credential_repository.go  # Quản lý credentials, đếm failed login, tăng token version
 │   │   ├── profile_repository.go     # Quản lý profile người dùng và preferences JSONB
+│   │   ├── user_company_repository.go# CRUD UserCompany, liên kết người dùng - công ty, phân trang cursor, tìm kiếm đa trường
 │   │   └── user_repository.go        # CRUD User, tìm kiếm email/public_id, phân trang cursor, lọc theo quốc gia
 │   ├── services/                 # Tầng xử lý nghiệp vụ kinh doanh (Business Logic)
 │   │   ├── auth_service.go           # Nghiệp vụ Đăng ký (transaction), Đăng nhập, Refresh, Logout-All
 │   │   ├── company_service.go        # Nghiệp vụ CRUD công ty, chuẩn hóa mã code & ISO country/currency, kiểm tra trùng lặp, phân trang cursor
+│   │   ├── user_company_service.go   # Nghiệp vụ CRUD liên kết người dùng - công ty, thẩm định thực thể, phân quyền, phân trang cursor
 │   │   └── user_service.go           # Nghiệp vụ CRUD người dùng, phân trang cursor, quản lý trường đa quốc gia, soft-delete
-│   └── tests/                    # Thư mục kiểm thử đơn vị độc lập cho tầng Service (81.7% coverage)
+│   └── tests/                    # Thư mục kiểm thử đơn vị độc lập cho tầng Service (85.5% coverage)
 │       ├── auth_service_test.go      # Kiểm thử đơn vị toàn diện cho AuthService
 │       ├── company_service_test.go   # Kiểm thử đơn vị toàn diện cho CompanyService
-│       ├── mock_test.go              # Mock struct giả lập UserRepository, CredentialRepository, ProfileRepository, CompanyRepository
+│       ├── mock_test.go              # Mock struct giả lập UserRepository, CredentialRepository, ProfileRepository, CompanyRepository, UserCompanyRepository
+│       ├── user_company_service_test.go # Kiểm thử đơn vị toàn diện cho UserCompanyService
 │       └── user_service_test.go      # Kiểm thử đơn vị toàn diện cho UserService
 └── frontend/                         # Thư mục mã nguồn Frontend Web (Next.js)
     └── .dockerignore                 # File ignore cho Docker frontend
@@ -186,6 +192,7 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 #### 3. [`pagination.go`](file:///home/wsl-admin/projects/terra-clone/server/common/pagination.go)
 - Struct [`Paging`](file:///home/wsl-admin/projects/terra-clone/server/common/pagination.go#L3-L7):
   - Áp dụng kỹ thuật **Cursor-based Pagination** (thay thế cho Offset-based truyền thống), tối ưu hóa hiệu năng truy vấn trên bảng dữ liệu lớn hàng chục triệu bản ghi kết hợp với khóa chính `UUIDv7`.
+  - Con trỏ `cursor` và `next_cursor` chỉ để lộ mã định danh công khai (`public_id`) ra bên ngoài nhằm bảo mật toàn diện ID nội bộ của hệ thống.
 
 #### 4. [`jwt.go`](file:///home/wsl-admin/projects/terra-clone/server/common/jwt.go)
 - Quản lý vòng đời JWT Token:
@@ -243,9 +250,13 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
    - Cột `tax_id VARCHAR(50)` mã số thuế doanh nghiệp, được đánh chỉ mục `idx_companies_tax_id`.
    - Khóa ngoại `owner_id UUID REFERENCES users(id) ON DELETE SET NULL` đánh chỉ mục `idx_companies_owner_id`.
    - Cột `metadata JSONB` lưu trữ cấu hình mở rộng dạng JSONB với chỉ mục GIN (`idx_companies_metadata`).
-5. **[`000005_multinational_support`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000005_multinational_support.up.sql)**:
-   - Mở rộng bảng `user_profiles` hỗ trợ tiêu chuẩn đa quốc gia: `country_code`, `nationality`, `timezone`, `locale`, `city`, `state_or_province`, `postal_code` kèm chỉ mục `idx_user_profiles_country_code`.
-   - Mở rộng bảng `companies` hỗ trợ tiêu chuẩn doanh nghiệp quốc tế: `country_code`, `timezone`, `currency`, `legal_name`, `city`, `state_or_province`, `postal_code` kèm chỉ mục `idx_companies_country_code`.
+5. **[`000005_user_companies_table`](file:///home/wsl-admin/projects/terra-clone/server/migrations/000005_user_companies_table.up.sql)**:
+   - Tạo bảng liên kết `user_companies` với khóa chính `id UUID DEFAULT uuidv7()`.
+   - Cột `public_id VARCHAR(50) UNIQUE NOT NULL` định danh công khai (tiền tố `ucmp_`).
+   - Khóa ngoại `user_id UUID REFERENCES users(id) ON DELETE CASCADE` và `company_id UUID REFERENCES companies(id) ON DELETE CASCADE`.
+   - Ràng buộc duy nhất `uq_user_companies_user_company UNIQUE (user_id, company_id)`.
+   - Cột `role VARCHAR(50)` mặc định `'member'`, `job_title VARCHAR(100)`, `department VARCHAR(100)`, `status VARCHAR(20)`.
+   - Cột `permissions JSONB` và `metadata JSONB` được đánh chỉ mục GIN phục vụ truy vấn linh hoạt.
 
 ---
 
@@ -255,14 +266,16 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 - [`credential.go`](file:///home/wsl-admin/projects/terra-clone/server/models/credential.go): Khai báo Entity `UserCredentials` ánh xạ tới `user_credentials`, bổ sung phương thức kiểm tra trạng thái khóa `IsLocked()`.
 - [`profile.go`](file:///home/wsl-admin/projects/terra-clone/server/models/profile.go): Khai báo Entity `UserProfile` lưu hồ sơ cá nhân và các trường chuẩn hóa đa quốc gia (`CountryCode`, `Nationality`, `Timezone`, `Locale`, `City`, `StateOrProvince`, `PostalCode`), kèm kiểu tùy chỉnh `JSONMap` cho cột `preferences JSONB`.
 - [`company.go`](file:///home/wsl-admin/projects/terra-clone/server/models/company.go): Khai báo Entity `Company` ánh xạ tới `companies`, hook `BeforeCreate` tự động gán `UUIDv7`, lưu các trường doanh nghiệp đa quốc gia (`CountryCode`, `Timezone`, `Currency`, `LegalName`, `City`, `StateOrProvince`, `PostalCode`), quan hệ liên kết với `User` qua `OwnerID`.
+- [`user_company.go`](file:///home/wsl-admin/projects/terra-clone/server/models/user_company.go): Khai báo Entity `UserCompany` ánh xạ tới `user_companies`, hook `BeforeCreate` tự động gán `UUIDv7` và `public_id` tiền tố `ucmp_`, lưu `Role`, `JobTitle`, `Department`, `Status`, `Permissions JSONMap`, `Metadata JSONMap`, liên kết với `User` và `Company`.
 
 ---
 
 ### 2.7. Tầng Truy Cập Dữ Liệu: [`repositories/`](file:///home/wsl-admin/projects/terra-clone/server/repositories)
-- [`user_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/user_repository.go): Đóng gói toàn bộ câu lệnh truy vấn bảng `users`: `Create`, `FindByID`, `FindByPublicID`, `FindByEmail`, `FindByIDOrPublicID`, `List` (hỗ trợ phân trang con trỏ `UUIDv7`), `Update`, `Delete` (soft-delete hoặc hard-delete).
+- [`user_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/user_repository.go): Đóng gói toàn bộ câu lệnh truy vấn bảng `users`: `Create`, `FindByID`, `FindByPublicID`, `FindByEmail`, `FindByIDOrPublicID`, `List` (hỗ trợ phân trang con trỏ `public_id` / `UUIDv7`), `Update`, `Delete` (soft-delete hoặc hard-delete).
 - [`credential_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/credential_repository.go): Quản lý bảng `user_credentials`: `Create`, `FindByUserID`, `Update`, `RecordFailedLogin` (tự động khóa 15 phút khi sai liên tiếp 5 lần), `ResetFailedLogin`, `IncrementTokenVersion`.
 - [`profile_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/profile_repository.go): Quản lý bảng `user_profiles`: `Create`, `FindByUserID`, `Update`, `Upsert` (sử dụng mệnh đề `ON CONFLICT DO UPDATE`).
-- [`company_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/company_repository.go): Quản lý bảng `companies`: `Create`, `FindByID`, `FindByPublicID`, `FindByCode`, `FindByTaxID`, `FindByIDOrPublicIDOrCode`, `List` (phân trang Cursor `UUIDv7`, lọc status/owner, tìm kiếm đa trường), `Update`, `Delete` (soft/hard).
+- [`company_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/company_repository.go): Quản lý bảng `companies`: `Create`, `FindByID`, `FindByPublicID`, `FindByCode`, `FindByTaxID`, `FindByIDOrPublicIDOrCode`, `List` (phân trang Cursor `public_id` / `UUIDv7`, lọc status/owner, tìm kiếm đa trường), `Update`, `Delete` (soft/hard).
+- [`user_company_repository.go`](file:///home/wsl-admin/projects/terra-clone/server/repositories/user_company_repository.go): Quản lý bảng `user_companies`: `Create`, `FindByID`, `FindByPublicID`, `FindByIDOrPublicID`, `FindByUserAndCompany`, `List` (phân trang Cursor `public_id` / `UUIDv7`, lọc theo user/company/role/status, tìm kiếm đa trường), `Update`, `Delete` (soft/hard).
 
 ---
 
@@ -279,6 +292,12 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
   - `ListCompanies`: Phân trang danh sách con trỏ `UUIDv7`, lọc theo trạng thái và owner_id, tìm kiếm từ khóa.
   - `UpdateCompany`: Cập nhật thông tin công ty, kiểm tra chống xung đột mã code/tax_id, chuyển đổi chủ sở hữu và cập nhật metadata.
   - `DeleteCompany`: Xóa mềm (`status = 'deleted'`) hoặc xóa cứng vĩnh viễn khỏi CSDL.
+- [`user_company_service.go`](file:///home/wsl-admin/projects/terra-clone/server/services/user_company_service.go):
+  - `CreateUserCompany`: Thẩm định người dùng và công ty tồn tại, kiểm tra tính duy nhất của liên kết, tự động kích hoạt lại các bản ghi đã xóa mềm nếu được yêu cầu, lưu trữ chức danh, vai trò, phòng ban, quyền hạn và metadata.
+  - `GetUserCompanyByID`: Tra cứu chi tiết liên kết qua UUID hoặc public_id (tiền tố `ucmp_`), nạp sẵn thực thể User và Company.
+  - `ListUserCompanies`: Liệt kê danh sách liên kết với phân trang Cursor `UUIDv7`, lọc theo user_id, company_id, role, status và tìm kiếm từ khóa.
+  - `UpdateUserCompany`: Cập nhật vai trò, chức danh, phòng ban, trạng thái, merge quyền hạn và metadata.
+  - `DeleteUserCompany`: Hỗ trợ xóa mềm (`status = 'deleted'`) hoặc xóa cứng (`hard=true`) khỏi cơ sở dữ liệu.
 - [`user_service.go`](file:///home/wsl-admin/projects/terra-clone/server/services/user_service.go):
   - `CreateUser`: Tạo mới người dùng kèm hồ sơ cá nhân qua API quản trị.
   - `GetUserByID`: Tra cứu người dùng theo ID nội bộ hoặc `public_id`.
@@ -290,9 +309,10 @@ Chuẩn hóa dữ liệu trả về cho tất cả các API thành công:
 
 ### 2.9. Tầng Kiểm Thử Đơn Vị Độc Lập: [`tests/`](file:///home/wsl-admin/projects/terra-clone/server/tests)
 Toàn bộ mã kiểm thử được đưa ra thư mục riêng biệt `server/tests/` nhằm phân tách rõ ràng với mã nguồn sản phẩm và tuân thủ mô hình Black-Box Unit Testing cho tầng Service:
-- [`mock_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/mock_test.go): Hiện thực Mock Repository (`MockUserRepository`, `MockCredentialRepository`, `MockProfileRepository`, `MockCompanyRepository`) bằng `testify/mock` cùng helper `newMockGormDB()` phục vụ kiểm thử Transaction với `go-sqlmock`.
+- [`mock_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/mock_test.go): Hiện thực Mock Repository (`MockUserRepository`, `MockCredentialRepository`, `MockProfileRepository`, `MockCompanyRepository`, `MockUserCompanyRepository`) bằng `testify/mock` cùng helper `newMockGormDB()` phục vụ kiểm thử Transaction với `go-sqlmock`.
 - [`auth_service_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/auth_service_test.go): Bộ unit test bao phủ toàn diện cho `AuthService` (`Register`, `Login`, `RefreshToken`, `LogoutAll`, `GetMe`).
 - [`company_service_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/company_service_test.go): Bộ unit test bao phủ toàn diện cho `CompanyService` (`CreateCompany`, `GetCompanyByID`, `ListCompanies`, `UpdateCompany`, `DeleteCompany`).
+- [`user_company_service_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/user_company_service_test.go): Bộ unit test bao phủ toàn diện cho `UserCompanyService` (`CreateUserCompany`, `GetUserCompanyByID`, `ListUserCompanies`, `UpdateUserCompany`, `DeleteUserCompany`).
 - [`user_service_test.go`](file:///home/wsl-admin/projects/terra-clone/server/tests/user_service_test.go): Bộ unit test bao phủ toàn diện cho `UserService` (`CreateUser`, `GetUserByID`, `ListUsers`, `UpdateUser`, `DeleteUser`).
 
 ---
@@ -300,6 +320,7 @@ Toàn bộ mã kiểm thử được đưa ra thư mục riêng biệt `server/t
 ### 2.10. Tầng Giao Tiếp Vận Chuyển: [`controllers/`](file:///home/wsl-admin/projects/terra-clone/server/controllers)
 - [`auth_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/auth_controller.go): Điều phối các endpoint `/api/v1/auth/*`: `Register`, `Login`, `RefreshToken`, `LogoutAll`, `GetMe`.
 - [`company_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/company_controller.go): Điều phối các endpoint `/api/v1/companies/*`: `Create`, `GetByID`, `List`, `Update`, `Delete`.
+- [`user_company_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/user_company_controller.go): Điều phối các endpoint `/api/v1/user-companies/*`, `/api/v1/companies/:id/users`, `/api/v1/users/:id/companies`: `Create`, `GetByID`, `List`, `Update`, `Delete`.
 - [`user_controller.go`](file:///home/wsl-admin/projects/terra-clone/server/controllers/user_controller.go): Điều phối các endpoint `/api/v1/users/*`: `Create`, `GetByID`, `List`, `Update`, `Delete`.
 
 ---
@@ -307,6 +328,7 @@ Toàn bộ mã kiểm thử được đưa ra thư mục riêng biệt `server/t
 ### 2.11. Tầng Data Transfer Objects: [`dto/`](file:///home/wsl-admin/projects/terra-clone/server/dto)
 - [`auth_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/auth_dto.go): Định nghĩa cấu trúc binding JSON cho luồng xác thực (`RegisterRequest`, `LoginRequest`, `RefreshTokenRequest`, `AuthResponse`).
 - [`company_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/company_dto.go): Định nghĩa cấu trúc binding và serialization cho quản trị công ty (`CreateCompanyRequest`, `UpdateCompanyRequest`, `ListCompaniesQuery`, `CompanyOwnerResponse`, `CompanyResponse`).
+- [`user_company_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/user_company_dto.go): Định nghĩa cấu trúc binding và serialization cho liên kết người dùng - công ty (`CreateUserCompanyRequest`, `UpdateUserCompanyRequest`, `ListUserCompaniesQuery`, `UserCompanyResponse`).
 - [`user_dto.go`](file:///home/wsl-admin/projects/terra-clone/server/dto/user_dto.go): Định nghĩa cấu trúc binding và serialization cho quản trị người dùng (`CreateUserRequest`, `UpdateUserRequest`, `ListUsersQuery`, `UserProfileResponse`, `UserResponse`).
 
 ---

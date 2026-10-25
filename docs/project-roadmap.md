@@ -101,10 +101,23 @@ flowchart TD
   - `PUT /api/v1/companies/:id`: Cập nhật thông tin doanh nghiệp, thay đổi/xóa chủ sở hữu và cập nhật trường cấu hình linh hoạt `metadata JSONB` (đánh chỉ mục GIN).
   - `DELETE /api/v1/companies/:id`: Xóa công ty với cơ chế xóa mềm mặc định (`status = 'deleted'`) và xóa cứng (`?hard=true`).
   - Hoàn thiện bộ kiểm thử đơn vị độc lập cho `CompanyService` tại `server/tests/company_service_test.go` đạt độ bao phủ toàn diện.
+- [x] **Quản Trị Quan Hệ Người Dùng - Doanh Nghiệp (User Company Management APIs)**:
+  - `POST /api/v1/user-companies`: Liên kết người dùng vào công ty kèm vai trò (`owner`, `admin`, `member`, `guest`), chức danh, phòng ban, quyền hạn (`permissions JSONB`) và cấu hình (`metadata JSONB`). Tự động kích hoạt lại các liên kết bị xóa mềm.
+  - `GET /api/v1/user-companies/:id`: Trích xuất chi tiết liên kết theo UUID hoặc `public_id` (`ucmp_`), nạp sẵn thông tin đối tượng User và Company.
+  - `GET /api/v1/user-companies`: Danh sách liên kết hỗ trợ phân trang Cursor (`UUIDv7`), lọc theo `user_id`, `company_id`, `role`, `status` và tìm kiếm đa trường.
+  - `PUT /api/v1/user-companies/:id`: Cập nhật vai trò, chức danh, phòng ban, trạng thái và cập nhật trường quyền hạn `permissions`/`metadata` JSONB.
+  - `DELETE /api/v1/user-companies/:id`: Xóa liên kết hỗ trợ soft-delete mặc định (`status = 'deleted'`) và xóa cứng (`?hard=true`).
+  - Hỗ trợ các sub-route tiện ích: `GET /api/v1/companies/:id/users`, `POST /api/v1/companies/:id/users`, `GET /api/v1/users/:id/companies`.
+  - Hoàn thiện bộ kiểm thử đơn vị độc lập cho `UserCompanyService` tại `server/tests/user_company_service_test.go` nâng độ bao phủ toàn hệ thống lên 85.5%.
 - [x] **Hỗ Trợ Tiêu Chuẩn Đa Quốc Gia (Multi-national & Internationalization)**:
   - Bổ sung trường thông tin chuẩn ISO cho cá nhân (`country_code`, `nationality`, `timezone`, `locale`, `city`, `state_or_province`, `postal_code`).
   - Bổ sung trường thông tin chuẩn ISO cho công ty (`country_code`, `timezone`, `currency`, `legal_name`, `city`, `state_or_province`, `postal_code`).
   - Tối ưu hóa truy vấn lọc danh sách theo quốc gia bằng chỉ mục B-Tree `idx_user_profiles_country_code` và `idx_companies_country_code`.
+- [x] **Bảo Mật Toàn Diện Định Danh Phản Hồi (Public Identifier Masking)**:
+  - Chuẩn hóa toàn bộ server không để lộ khóa chính nội bộ (`id` dạng UUIDv7) ra ngoài phản hồi API (`data`, `paging`, `details`).
+  - Tất cả DTO phản hồi (`UserResponse`, `CompanyResponse`, `UserCompanyResponse`, `CompanyOwnerResponse`) trả về tag `json:"id"`, `json:"user_id"`, `json:"company_id"` nhưng giá trị bên trong luôn là `public_id` (`usr_`, `cmp_`, `ucmp_`).
+  - Phân trang con trỏ `paging.cursor` và `paging.next_cursor` chỉ sử dụng `public_id`, tự động phân giải sang UUID nội bộ trong Repository.
+  - Bộ kiểm thử đơn vị kiểm tra chặt chẽ JSON serialization bảo đảm trường `id` trong response luôn mang mã `public_id` hợp lệ.
 - [ ] **Tải Lên Ảnh Đại Diện (Avatar Upload Pipeline - Kế hoạch giai đoạn sau)**:
   - Tích hợp giải pháp lưu trữ đối tượng (S3-compatible: AWS S3 hoặc MinIO container).
   - Cung cấp API sinh Presigned URL an toàn để client tải ảnh trực tiếp lên storage.

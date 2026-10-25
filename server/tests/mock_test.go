@@ -176,6 +176,93 @@ type MockCompanyRepository struct {
 	mock.Mock
 }
 
+// [VN] MockUserCompanyRepository giả lập interface UserCompanyRepository phục vụ kiểm thử đơn vị
+type MockUserCompanyRepository struct {
+	mock.Mock
+}
+
+// [VN] Create giả lập tạo mới liên kết user_companies
+func (m *MockUserCompanyRepository) Create(ctx context.Context, tx *gorm.DB, uc *models.UserCompany) error {
+	args := m.Called(ctx, tx, uc)
+	return args.Error(0)
+}
+
+// [VN] FindByID giả lập tìm kiếm liên kết theo UUID
+func (m *MockUserCompanyRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.UserCompany, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.UserCompany), args.Error(1)
+}
+
+// [VN] FindByPublicID giả lập tìm kiếm liên kết theo mã định danh công khai
+func (m *MockUserCompanyRepository) FindByPublicID(ctx context.Context, publicID string) (*models.UserCompany, error) {
+	args := m.Called(ctx, publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.UserCompany), args.Error(1)
+}
+
+// [VN] FindByIDOrPublicID giả lập tìm kiếm theo UUID hoặc public_id
+func (m *MockUserCompanyRepository) FindByIDOrPublicID(ctx context.Context, identifier string) (*models.UserCompany, error) {
+	args := m.Called(ctx, identifier)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.UserCompany), args.Error(1)
+}
+
+// [VN] FindByUserAndCompany giả lập tìm kiếm liên kết theo cặp user_id và company_id
+func (m *MockUserCompanyRepository) FindByUserAndCompany(ctx context.Context, userID uuid.UUID, companyID uuid.UUID) (*models.UserCompany, error) {
+	args := m.Called(ctx, userID, companyID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.UserCompany), args.Error(1)
+}
+
+// [VN] List giả lập truy vấn danh sách liên kết có phân trang cursor và bộ lọc
+func (m *MockUserCompanyRepository) List(
+	ctx context.Context,
+	cursor string,
+	limit int,
+	userID *uuid.UUID,
+	companyID *uuid.UUID,
+	role string,
+	status string,
+	search string,
+) ([]models.UserCompany, string, int64, error) {
+	args := m.Called(ctx, cursor, limit, userID, companyID, role, status, search)
+	var list []models.UserCompany
+	if args.Get(0) != nil {
+		list = args.Get(0).([]models.UserCompany)
+	}
+	return list, args.String(1), args.Get(2).(int64), args.Error(3)
+}
+
+// [VN] Update giả lập cập nhật thông tin liên kết UserCompany
+func (m *MockUserCompanyRepository) Update(ctx context.Context, tx *gorm.DB, uc *models.UserCompany) error {
+	args := m.Called(ctx, tx, uc)
+	return args.Error(0)
+}
+
+// [VN] Delete giả lập xóa mềm hoặc xóa cứng liên kết UserCompany
+func (m *MockUserCompanyRepository) Delete(ctx context.Context, tx *gorm.DB, id uuid.UUID, soft bool) error {
+	args := m.Called(ctx, tx, id, soft)
+	return args.Error(0)
+}
+
+// [VN] GetDB trả về con trỏ gorm.DB giả lập
+func (m *MockUserCompanyRepository) GetDB() *gorm.DB {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*gorm.DB)
+}
+
 // [VN] Create giả lập thao tác lưu công ty mới vào CSDL
 func (m *MockCompanyRepository) Create(ctx context.Context, tx *gorm.DB, company *models.Company) error {
 	args := m.Called(ctx, tx, company)

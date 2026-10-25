@@ -174,6 +174,12 @@ func (r *companyRepository) List(
 	if cursor != "" {
 		if cursorUUID, err := uuid.Parse(cursor); err == nil {
 			dataQuery = dataQuery.Where("id < ?", cursorUUID)
+		} else {
+			// [VN] Tra cứu khóa chính UUID tương ứng từ public_id để làm mốc phân trang con trỏ
+			var cursorComp models.Company
+			if err := r.db.WithContext(ctx).Select("id").Where("public_id = ?", cursor).First(&cursorComp).Error; err == nil {
+				dataQuery = dataQuery.Where("id < ?", cursorComp.ID)
+			}
 		}
 	}
 
@@ -184,7 +190,7 @@ func (r *companyRepository) List(
 
 	var nextCursor string
 	if len(companies) == limit {
-		nextCursor = companies[len(companies)-1].ID.String()
+		nextCursor = companies[len(companies)-1].PublicID
 	}
 
 	return companies, nextCursor, total, nil

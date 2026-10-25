@@ -85,7 +85,7 @@ func (s *companyService) CreateCompany(
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, common.ErrBadRequest.
 					WithReason("Owner user not found in the system").
-					WithDetail("owner_id", ownerID.String())
+					WithDetail("owner", "current_user")
 			}
 			return nil, common.ErrInternalServerError.
 				WithReason("Failed to verify company owner").

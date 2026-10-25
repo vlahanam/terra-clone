@@ -168,6 +168,13 @@ defer func() {
 ```
 Cơ chế này bảo đảm **Zero Log Loss**: khi tiến trình Go nhận tín hiệu dừng (SIGTERM/SIGINT), toàn bộ các bản ghi log còn lưu trong bộ đệm RAM của `lumberjack.Roller` sẽ được đẩy (flush) hoàn toàn xuống đĩa cứng trước khi tiến trình kết thúc.
 
+### 3.3. Cơ Chế Bảo Mật Định Danh Công Khai (Public Identifier Masking)
+- **Nguyên tắc cốt lõi**: Toàn bộ hệ thống backend tuân thủ nghiêm ngặt quy tắc không để lộ khóa chính nội bộ (`id` dạng UUIDv7) ra ngoài phản hồi API (`data`, `paging`, `details`).
+- **Chi tiết hiện thực**:
+  - Tất cả DTO phản hồi (`UserResponse`, `CompanyResponse`, `UserCompanyResponse`, `CompanyOwnerResponse`) sử dụng tag `json:"id"`, nhưng **giá trị bên trong luôn được gán bằng `public_id`** (tiền tố `usr_`, `cmp_`, `ucmp_`).
+  - Đối tượng liên kết quan hệ hiển thị `json:"user_id"` và `json:"company_id"` chứa `public_id` của user và company tương ứng, tuyệt đối không rò rỉ khóa ngoại dạng UUID.
+  - Phân trang Cursor (`paging.cursor`, `paging.next_cursor`) vận hành hoàn toàn bằng `public_id`. Tầng Repository tự động phân giải `public_id` thành UUIDv7 nội bộ để thực thi câu lệnh SQL tối ưu chỉ mục: `WHERE id < cursor_uuid ORDER BY id DESC LIMIT 20`.
+
 ---
 
 ## 4. 💾 Tầng Cơ sở Dữ liệu & Thiết kế Lược đồ (Database Architecture)
@@ -181,6 +188,8 @@ erDiagram
     users ||--|| user_credentials : "has (1:1)"
     users ||--|| user_profiles : "has (1:1)"
     users ||--o{ companies : "owns (1:N)"
+    users ||--o{ user_companies : "participates (1:N)"
+    companies ||--o{ user_companies : "members (1:N)"
 
     users {
         uuid id PK "UUIDv7 (Tự động sắp xếp thời gian)"
@@ -244,6 +253,22 @@ erDiagram
         varchar status "active, inactive, suspended, deleted"
         uuid owner_id FK "Tham chiếu users(id) ON DELETE SET NULL"
         jsonb metadata "Cấu hình tùy biến mở rộng (GIN Indexed)"
+        timestamptz created_at "Thời điểm tạo"
+        timestamptz updated_at "Thời điểm sửa"
+    }
+
+    user_companies {
+        uuid id PK "UUIDv7 (Tự động sắp xếp thời gian)"
+        varchar public_id UK "Mã định danh công khai (tiền tố ucmp_)"
+        uuid user_id FK "Tham chiếu users(id) ON DELETE CASCADE"
+        uuid company_id FK "Tham chiếu companies(id) ON DELETE CASCADE"
+        varchar role "Vai trò: owner, admin, member, guest"
+        varchar job_title "Chức danh công việc trong tổ chức"
+        varchar department "Phòng ban làm việc"
+        varchar status "Trạng thái: active, inactive, pending, suspended, deleted"
+        jsonb permissions "Quyền hạn chi tiết (GIN Indexed)"
+        jsonb metadata "Cấu hình mở rộng dạng JSONB (GIN Indexed)"
+        timestamptz joined_at "Thời điểm gia nhập công ty"
         timestamptz created_at "Thời điểm tạo"
         timestamptz updated_at "Thời điểm sửa"
     }

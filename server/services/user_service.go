@@ -134,7 +134,7 @@ func (s *userService) GetUserByID(ctx context.Context, idOrPublicID string) (*dt
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.ErrNotFound.
 				WithReason("Requested user not found").
-				WithDetail("id", idOrPublicID)
+				WithDetail("identifier", idOrPublicID)
 		}
 		return nil, common.ErrInternalServerError.
 			WithReason("Failed to retrieve user data").
@@ -174,7 +174,7 @@ func (s *userService) UpdateUser(ctx context.Context, idOrPublicID string, req *
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.ErrNotFound.
 				WithReason("User to update does not exist").
-				WithDetail("id", idOrPublicID)
+				WithDetail("identifier", idOrPublicID)
 		}
 		return nil, common.ErrInternalServerError.
 			WithReason("Failed to find user for update").
@@ -276,7 +276,7 @@ func (s *userService) DeleteUser(ctx context.Context, idOrPublicID string, hard 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.ErrNotFound.
 				WithReason("User to delete does not exist").
-				WithDetail("id", idOrPublicID)
+				WithDetail("identifier", idOrPublicID)
 		}
 		return common.ErrInternalServerError.
 			WithReason("Failed to find user").

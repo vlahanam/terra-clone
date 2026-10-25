@@ -8,7 +8,7 @@ http:
   url: "{{DOMAIN}}/api/v1/companies/:id"
   params:
     - name: id
-      value: usr_0e88b189d3e7b8f3
+      value: cmp_0e88b189d3e7b8f3
       type: path
   auth:
     type: bearer
